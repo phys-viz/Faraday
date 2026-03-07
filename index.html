@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Magnetic Flux</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#080c12; color:#b8ccd8; font-family:'Share Tech Mono',monospace; display:flex; height:100vh; overflow:hidden; }
+
+  #canvas-container { flex:1; position:relative; cursor:grab; }
+  #canvas-container.dragging-magnet { cursor:move; }
+  #canvas-container canvas { display:block; }
+
+  #sidebar { width:275px; background:#080f1a; border-left:1px solid #1a3050; display:flex; flex-direction:column; overflow:hidden; }
+  #sidebar-header { padding:16px 18px 12px; border-bottom:1px solid #1a3050; background:#060b14; }
+  #sidebar-header h1 { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:20px; color:#4fc3f7; letter-spacing:3px; text-transform:uppercase; }
+  #sidebar-header p  { font-size:10px; color:#4a6070; letter-spacing:1px; margin-top:2px; }
+
+  #sidebar-body { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:15px; }
+  #sidebar-body::-webkit-scrollbar { width:4px; }
+  #sidebar-body::-webkit-scrollbar-thumb { background:#1e3a5f; }
+
+  .section-label { font-size:9px; color:#5a7888; letter-spacing:2px; text-transform:uppercase; margin-bottom:7px; }
+
+  .btn { background:#0a1520; border:1px solid #1a3a60; color:#7aabcf; font-family:'Share Tech Mono',monospace; font-size:12px; padding:8px 10px; cursor:pointer; transition:all 0.12s; width:100%; text-align:center; letter-spacing:0.5px; }
+  .btn:hover { background:#142030; border-color:#4fc3f7; color:#c8eeff; }
+  .btn.active { background:#0a2030; border-color:#4fc3f7; color:#4fc3f7; box-shadow:0 0 10px rgba(79,195,247,0.2); }
+  .btn-row { display:flex; gap:8px; }
+  .btn-row .btn { flex:1; }
+
+  input[type=range] { width:100%; -webkit-appearance:none; height:2px; background:#1a3050; outline:none; cursor:pointer; display:block; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:#4fc3f7; cursor:pointer; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); }
+  .slider-row { display:flex; align-items:center; gap:10px; }
+  .slider-label { font-size:10px; color:#5a7888; width:52px; flex-shrink:0; }
+  .slider-val { font-size:11px; color:#4fc3f7; min-width:36px; text-align:right; }
+
+  .divider { border:none; border-top:1px solid #0d1e30; margin:0; }
+
+  .readout-box { background:#0a1828; border:1px solid #1a3050; padding:10px 12px; }
+  .readout-label { font-size:9px; color:#5a7888; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+  .readout-big { font-family:'Rajdhani',sans-serif; font-weight:600; font-size:26px; letter-spacing:2px; line-height:1; }
+  .readout-unit { font-size:9px; color:#5a7888; letter-spacing:1px; margin-top:2px; }
+  .readout-phi { color:#69f0ae; }
+  .readout-emf { color:#ffd54f; }
+
+  .info-box { background:#060e18; border:1px solid #0d1e30; padding:8px 10px; font-size:10px; color:#5a7888; line-height:1.7; }
+
+  .legend-row { display:flex; align-items:center; gap:8px; font-size:10px; color:#7a9aaa; padding:2px 0; }
+  .legend-swatch { width:24px; height:4px; border-radius:2px; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>Magnetic Flux</h1>
+    <p>Φ = ∫ B · dA</p>
+  </div>
+  <div id="sidebar-body">
+
+    <!-- Flux readout -->
+    <div class="readout-box">
+      <div class="readout-label">Magnetic Flux Φ</div>
+      <div class="readout-big readout-phi" id="disp-phi">0.000</div>
+      <div class="readout-unit">× 10⁻⁴ T·m²  (normalized)</div>
+    </div>
+
+    <!-- EMF readout -->
+    <div class="readout-box">
+      <div class="readout-label">Induced EMF  ε = −dΦ/dt</div>
+      <div class="readout-big readout-emf" id="disp-emf">0.000</div>
+      <div class="readout-unit">normalized units</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Field display toggle -->
+    <div>
+      <div class="section-label">Field Display</div>
+      <div class="btn-row">
+        <button class="btn active" id="btn-loop"  onclick="setFieldMode('loop')">Loop Only</button>
+        <button class="btn"        id="btn-full"  onclick="setFieldMode('full')">Full Plane</button>
+      </div>
+    </div>
+
+    <!-- Recenter -->
+    <div>
+      <button class="btn" onclick="recenterMagnet()">⊕ Recenter Magnet</button>
+    </div>
+
+    <!-- Axis lock -->
+    <div>
+      <div class="section-label">Drag Constraint</div>
+      <div class="btn-row">
+        <button class="btn active" id="btn-free" onclick="setAxisLock('free')">Free</button>
+        <button class="btn"        id="btn-xonly" onclick="setAxisLock('x')">X Axis</button>
+        <button class="btn"        id="btn-zonly" onclick="setAxisLock('z')">Z Axis</button>
+      </div>
+    </div>
+
+    <!-- Height slider -->
+    <div>
+      <div class="section-label">Magnet Height</div>
+      <div class="slider-row">
+        <span class="slider-label">Height</span>
+        <input type="range" id="sl-height" min="0.5" max="8" value="3" step="0.1" oninput="onHeightChange(this)">
+        <span class="slider-val" id="val-height">3.0</span>
+      </div>
+    </div>
+
+    <!-- Magnet strength -->
+    <div>
+      <div class="section-label">Magnet Strength</div>
+      <div class="slider-row">
+        <span class="slider-label">Strength</span>
+        <input type="range" id="sl-strength" min="0.5" max="3" value="1" step="0.1" oninput="onStrengthChange(this)">
+        <span class="slider-val" id="val-strength">1.0×</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Arrow color legend -->
+    <div>
+      <div class="section-label">Arrow Color → B⊥ (flux contribution)</div>
+      <div class="legend-row">
+        <div class="legend-swatch" style="background:linear-gradient(90deg,#ff6b35,#ffaa00)"></div>
+        Positive (into loop)
+      </div>
+      <div class="legend-row">
+        <div class="legend-swatch" style="background:linear-gradient(90deg,#0088ff,#00ccff)"></div>
+        Negative (out of loop)
+      </div>
+      <div class="legend-row">
+        <div class="legend-swatch" style="background:#aaaaaa"></div>
+        Near zero
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="info-box">
+      Drag the magnet to move it.<br>
+      Use axis lock for controlled sweeps.<br>
+      Orbit: right-click drag · Zoom: scroll
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════
+const LOOP_HALF   = 3.0;     // half-size of square loop (world units)
+const MAGNET_Y    = 3.0;     // height of magnet above loop plane
+const MAX_ARROW   = 0.38;    // max arrow length
+const REF_FIELD   = 0.025;   // field magnitude for arrow length saturation
+const ARROW_HEAD  = 0.22;    // head fraction of arrow length
+
+// Grid configs
+const LOOP_GRID_N = 13;   // 13×13 inside loop
+const FULL_GRID_N = 21;   // 21×21 full plane
+const FULL_HALF   = 7.0;
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let magnetX = 0, magnetZ = 0;
+let magnetY = 3.0;          // mutable height
+let magnetStrength = 1.0;
+let fieldMode  = 'loop';
+let axisLock   = 'free';    // 'free' | 'x' | 'z'
+
+let prevPhi = 0;
+let emf     = 0;
+let prevTs  = null;
+
+// ═══════════════════════════════════════════════════════
+//  THREE.JS SETUP
+// ═══════════════════════════════════════════════════════
+const container = document.getElementById('canvas-container');
+const getW = () => container.clientWidth;
+const getH = () => container.clientHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(getW(), getH());
+renderer.setClearColor(0x060a10);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+
+const camera = new THREE.PerspectiveCamera(45, getW()/getH(), 0.1, 200);
+
+// ── Orbit state ──
+let camTheta  = Math.PI * 0.28;
+let camPhi    = Math.PI * 0.30;
+let camRadius = 22;
+
+function updateCamera() {
+  camera.position.set(
+    camRadius * Math.sin(camPhi) * Math.sin(camTheta),
+    camRadius * Math.cos(camPhi),
+    camRadius * Math.sin(camPhi) * Math.cos(camTheta)
+  );
+  camera.lookAt(0, 0, 0);
+}
+updateCamera();
+
+// ═══════════════════════════════════════════════════════
+//  SCENE GEOMETRY
+// ═══════════════════════════════════════════════════════
+
+// Grid floor (faint)
+const gridHelper = new THREE.GridHelper(24, 48, 0x0a1e30, 0x080f1e);
+gridHelper.position.y = -0.05;
+scene.add(gridHelper);
+
+// Square loop — 4 edges as lines
+(function() {
+  const h = LOOP_HALF;
+  const pts = [
+    new THREE.Vector3(-h,0,-h), new THREE.Vector3( h,0,-h),
+    new THREE.Vector3( h,0, h), new THREE.Vector3(-h,0, h),
+    new THREE.Vector3(-h,0,-h)
+  ];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color:0x4fc3f7, linewidth:2 });
+  scene.add(new THREE.Line(geo, mat));
+})();
+
+// Loop normal indicator (faint arrow pointing up)
+(function() {
+  const pts = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,1.5,0)];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color:0x1a4a60, transparent:true, opacity:0.6 });
+  scene.add(new THREE.Line(geo, mat));
+  // tiny arrowhead for normal
+  const tipPts = [
+    new THREE.Vector3(-0.12, 1.3, 0), new THREE.Vector3(0, 1.5, 0),
+    new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0.12, 1.3, 0)
+  ];
+  const tGeo = new THREE.BufferGeometry().setFromPoints(tipPts);
+  scene.add(new THREE.LineSegments(tGeo, mat));
+})();
+
+// ── Magnet mesh ──
+const magnetGroup = new THREE.Group();
+const boxGeo = new THREE.BoxGeometry(0.5, 0.7, 0.5);
+const northMesh = new THREE.Mesh(boxGeo, new THREE.MeshBasicMaterial({ color:0xcc3333 }));
+const southMesh = new THREE.Mesh(boxGeo, new THREE.MeshBasicMaterial({ color:0x3366cc }));
+northMesh.position.y =  0.35;  // N pole on top
+southMesh.position.y = -0.35;  // S pole on bottom (closer to loop)
+magnetGroup.add(northMesh, southMesh);
+// N/S pole labels using a small sphere marker
+const nLabel = new THREE.Mesh(
+  new THREE.SphereGeometry(0.12, 8, 8),
+  new THREE.MeshBasicMaterial({ color:0xff8888 })
+);
+nLabel.position.y = 0.82;
+magnetGroup.add(nLabel);
+magnetGroup.position.set(magnetX, MAGNET_Y, magnetZ);
+scene.add(magnetGroup);
+
+// Hitbox sphere (invisible, for raycasting)
+const magnetHitbox = new THREE.Mesh(
+  new THREE.SphereGeometry(1.2, 12, 12),
+  new THREE.MeshBasicMaterial({ visible:false })
+);
+magnetHitbox.position.set(magnetX, MAGNET_Y, magnetZ);
+scene.add(magnetHitbox);
+
+// ── Arrow geometry ──
+// Each arrow: 6 vertices (shaft×2 + head-line1×2 + head-line2×2), 3 floats each
+let arrowCount   = LOOP_GRID_N * LOOP_GRID_N;
+let arrowPosArr  = new Float32Array(arrowCount * 18);
+let arrowColArr  = new Float32Array(arrowCount * 18);
+let arrowGeo     = new THREE.BufferGeometry();
+arrowGeo.setAttribute('position', new THREE.BufferAttribute(arrowPosArr, 3));
+arrowGeo.setAttribute('color',    new THREE.BufferAttribute(arrowColArr, 3));
+const arrowMat   = new THREE.LineBasicMaterial({ vertexColors:true });
+let arrowLines   = new THREE.LineSegments(arrowGeo, arrowMat);
+scene.add(arrowLines);
+
+// ═══════════════════════════════════════════════════════
+//  PHYSICS — DIPOLE FIELD
+// ═══════════════════════════════════════════════════════
+// Magnet: moment m = (0, strength, 0) at (mx, MAGNET_Y, mz)
+// N pole on top, S pole below, moment points upward (+Y)
+// In loop plane (y=0), the field is computed from the 3D dipole formula.
+// Flux = ∫ By dA (loop normal = +Y)
+
+function dipoleB(px, pz) {
+  const M  = magnetStrength;
+  const dx = px - magnetX;
+  const dy = 0 - magnetY;   // field point y=0, magnet at magnetY
+  const dz = pz - magnetZ;
+  const r2 = dx*dx + dy*dy + dz*dz;
+  if (r2 < 0.01) return {x:0, y:0, z:0};
+  const r5 = r2 * r2 * Math.sqrt(r2);
+
+  // m = (0, M, 0)  →  m·r_vec = M*dy
+  const mdotr = M * dy;
+  return {
+    x: (3 * mdotr * dx) / r5,
+    y: (3 * mdotr * dy - M * r2) / r5,
+    z: (3 * mdotr * dz) / r5
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+//  ARROW UPDATE
+// ═══════════════════════════════════════════════════════
+function arrowColor(by) {
+  // Map By to color: positive = warm (orange), negative = cool (blue), zero = gray
+  const t = Math.tanh(by / (REF_FIELD * 1.2));  // -1 to 1
+  let r, g, b;
+  if (t >= 0) {
+    r = 0.85 + 0.15*t;
+    g = 0.35 + 0.30*(1-t);
+    b = 0.10 + 0.05*(1-t);
+  } else {
+    const nt = -t;
+    r = 0.05 + 0.10*(1-nt);
+    g = 0.25 + 0.25*(1-nt);
+    b = 0.75 + 0.25*nt;
+  }
+  return {r, g, b};
+}
+
+function setArrow(idx, sx, sz, bx, by, bz) {
+  const mag = Math.sqrt(bx*bx + by*by + bz*bz);
+  const base = idx * 18;
+
+  if (mag < 1e-9) {
+    arrowPosArr.fill(0, base, base+18);
+    arrowColArr.fill(0.3, base, base+18);
+    return;
+  }
+
+  // Saturating length
+  const length = (mag / (mag + REF_FIELD)) * MAX_ARROW * 2;
+  const ux = bx/mag, uy = by/mag, uz = bz/mag;
+
+  // Arrow starts slightly above loop plane
+  const sy = 0.02;
+  const ex = sx + ux*length;
+  const ey = sy + uy*length;
+  const ez = sz + uz*length;
+
+  const hl = length * ARROW_HEAD;
+  const hw = hl * 0.45;
+
+  // Perpendicular for arrowhead (consistent across all arrows)
+  let px, py_p, pz;
+  if (Math.abs(uy) < 0.85) {
+    // cross dir with (0,1,0)
+    const pm = Math.sqrt(ux*ux*0 + uz*uz);  // |(-uz,0,ux)|
+    px  = -uz / Math.sqrt(uz*uz + ux*ux + 1e-12);
+    py_p = 0;
+    pz  =  ux / Math.sqrt(uz*uz + ux*ux + 1e-12);
+  } else {
+    // cross dir with (1,0,0)
+    px  = 0;
+    py_p = uz / Math.sqrt(uy*uy*0 + uz*uz + uy*uy + 1e-12);
+    pz  = -uy / Math.sqrt(uy*uy + uz*uz + 1e-12);
+  }
+
+  const hbx = ex - ux*hl, hby = ey - uy*hl, hbz = ez - uz*hl;
+
+  // Shaft
+  arrowPosArr[base+ 0]=sx;          arrowPosArr[base+ 1]=sy;           arrowPosArr[base+ 2]=sz;
+  arrowPosArr[base+ 3]=ex;          arrowPosArr[base+ 4]=ey;           arrowPosArr[base+ 5]=ez;
+  // Head 1
+  arrowPosArr[base+ 6]=ex;          arrowPosArr[base+ 7]=ey;           arrowPosArr[base+ 8]=ez;
+  arrowPosArr[base+ 9]=hbx+px*hw;  arrowPosArr[base+10]=hby+py_p*hw;  arrowPosArr[base+11]=hbz+pz*hw;
+  // Head 2
+  arrowPosArr[base+12]=ex;          arrowPosArr[base+13]=ey;           arrowPosArr[base+14]=ez;
+  arrowPosArr[base+15]=hbx-px*hw;  arrowPosArr[base+16]=hby-py_p*hw;  arrowPosArr[base+17]=hbz-pz*hw;
+
+  const c = arrowColor(by);
+  for (let v = 0; v < 6; v++) {
+    arrowColArr[base+v*3  ] = c.r;
+    arrowColArr[base+v*3+1] = c.g;
+    arrowColArr[base+v*3+2] = c.b;
+  }
+}
+
+function rebuildArrowGrid() {
+  scene.remove(arrowLines);
+  const N    = (fieldMode === 'loop') ? LOOP_GRID_N : FULL_GRID_N;
+  const half = (fieldMode === 'loop') ? LOOP_HALF   : FULL_HALF;
+  arrowCount  = N * N;
+  arrowPosArr = new Float32Array(arrowCount * 18);
+  arrowColArr = new Float32Array(arrowCount * 18);
+  arrowGeo    = new THREE.BufferGeometry();
+  arrowGeo.setAttribute('position', new THREE.BufferAttribute(arrowPosArr, 3));
+  arrowGeo.setAttribute('color',    new THREE.BufferAttribute(arrowColArr, 3));
+  arrowLines  = new THREE.LineSegments(arrowGeo, arrowMat);
+  scene.add(arrowLines);
+}
+
+function updateArrows() {
+  const N    = (fieldMode === 'loop') ? LOOP_GRID_N : FULL_GRID_N;
+  const half = (fieldMode === 'loop') ? LOOP_HALF   : FULL_HALF;
+  const step = (2 * half) / (N - 1);
+  let phi = 0, idx = 0;
+  const dA = step * step;
+
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const px = -half + j * step;
+      const pz = -half + i * step;
+      const {x: bx, y: by, z: bz} = dipoleB(px, pz);
+      setArrow(idx, px, pz, bx, by, bz);
+
+      // Flux: only accumulate from points inside the loop
+      if (fieldMode === 'loop' ||
+         (px >= -LOOP_HALF && px <= LOOP_HALF && pz >= -LOOP_HALF && pz <= LOOP_HALF)) {
+        phi += by * dA;
+      }
+      idx++;
+    }
+  }
+
+  arrowGeo.attributes.position.needsUpdate = true;
+  arrowGeo.attributes.color.needsUpdate    = true;
+  return phi;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI CALLBACKS
+// ═══════════════════════════════════════════════════════
+function recenterMagnet() {
+  magnetX = 0; magnetZ = 0;
+  magnetGroup.position.set(0, magnetY, 0);
+  magnetHitbox.position.set(0, magnetY, 0);
+}
+
+function setAxisLock(mode) {
+  axisLock = mode;
+  document.getElementById('btn-free').classList.toggle('active',  mode === 'free');
+  document.getElementById('btn-xonly').classList.toggle('active', mode === 'x');
+  document.getElementById('btn-zonly').classList.toggle('active', mode === 'z');
+}
+
+function onHeightChange(el) {
+  magnetY = parseFloat(el.value);
+  document.getElementById('val-height').textContent = magnetY.toFixed(1);
+  magnetGroup.position.set(magnetX, magnetY, magnetZ);
+  magnetHitbox.position.set(magnetX, magnetY, magnetZ);
+}
+
+function setFieldMode(m) {
+  fieldMode = m;
+  document.getElementById('btn-loop').classList.toggle('active', m === 'loop');
+  document.getElementById('btn-full').classList.toggle('active', m === 'full');
+  rebuildArrowGrid();
+}
+
+function onStrengthChange(el) {
+  magnetStrength = parseFloat(el.value);
+  document.getElementById('val-strength').textContent = magnetStrength.toFixed(1) + '×';
+}
+
+// ═══════════════════════════════════════════════════════
+//  MOUSE — ORBIT + MAGNET DRAG
+// ═══════════════════════════════════════════════════════
+const raycaster   = new THREE.Raycaster();
+const _dragPt     = new THREE.Vector3();
+let dragPlane     = new THREE.Plane(new THREE.Vector3(0, 1, 0), -magnetY);
+
+let isDraggingMagnet = false;
+let isOrbiting       = false;
+let lastMouseX = 0, lastMouseY = 0;
+
+function getNDC(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  return new THREE.Vector2(
+    (e.clientX - rect.left) / rect.width  *  2 - 1,
+   -(e.clientY - rect.top)  / rect.height *  2 + 1
+  );
+}
+
+renderer.domElement.addEventListener('mousedown', e => {
+  // Left button: check if on magnet
+  if (e.button === 0) {
+    raycaster.setFromCamera(getNDC(e), camera);
+    const hits = raycaster.intersectObject(magnetHitbox);
+    if (hits.length > 0) {
+      isDraggingMagnet = true;
+      container.classList.add('dragging-magnet');
+      e.preventDefault();
+      return;
+    }
+  }
+  // Right button OR left on background: orbit
+  if (e.button === 2 || e.button === 0) {
+    isOrbiting = true;
+  }
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+});
+
+window.addEventListener('mousemove', e => {
+  if (isDraggingMagnet) {
+    raycaster.setFromCamera(getNDC(e), camera);
+    dragPlane.constant = -magnetY;
+    if (raycaster.ray.intersectPlane(dragPlane, _dragPt)) {
+      const nx = Math.max(-FULL_HALF, Math.min(FULL_HALF, _dragPt.x));
+      const nz = Math.max(-FULL_HALF, Math.min(FULL_HALF, _dragPt.z));
+      if (axisLock === 'free') { magnetX = nx; magnetZ = nz; }
+      else if (axisLock === 'x') { magnetX = nx; }
+      else if (axisLock === 'z') { magnetZ = nz; }
+      magnetGroup.position.set(magnetX, magnetY, magnetZ);
+      magnetHitbox.position.set(magnetX, magnetY, magnetZ);
+    }
+    return;
+  }
+  if (isOrbiting) {
+    const dx = e.clientX - lastMouseX;
+    const dy = e.clientY - lastMouseY;
+    camTheta -= dx * 0.008;
+    camPhi    = Math.max(0.08, Math.min(Math.PI * 0.48, camPhi + dy * 0.008));
+    updateCamera();
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  isDraggingMagnet = false;
+  isOrbiting       = false;
+  container.classList.remove('dragging-magnet');
+});
+
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+renderer.domElement.addEventListener('wheel', e => {
+  camRadius = Math.max(8, Math.min(45, camRadius + e.deltaY * 0.04));
+  updateCamera();
+  e.preventDefault();
+}, { passive:false });
+
+// ═══════════════════════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  renderer.setSize(getW(), getH());
+  camera.aspect = getW() / getH();
+  camera.updateProjectionMatrix();
+});
+
+// ═══════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════════
+function animate(ts) {
+  requestAnimationFrame(animate);
+
+  const phi = updateArrows();
+
+  // EMF = -dΦ/dt (numerical)
+  if (prevTs !== null) {
+    const dt = (ts - prevTs) / 1000;
+    if (dt > 0) emf = -(phi - prevPhi) / dt;
+  }
+  prevPhi = phi;
+  prevTs  = ts;
+
+  // Display
+  document.getElementById('disp-phi').textContent = (phi * 1e4).toFixed(3);
+  document.getElementById('disp-emf').textContent = emf.toFixed(3);
+
+  renderer.render(scene, camera);
+}
+
+animate(0);
+</script>
+</body>
+</html>
