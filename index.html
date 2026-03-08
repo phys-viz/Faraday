@@ -8,124 +8,204 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#080c12; color:#b8ccd8; font-family:'Share Tech Mono',monospace; display:flex; height:100vh; overflow:hidden; }
 
+  #canvas-wrap { flex:1; display:flex; }
   #canvas-container { flex:1; position:relative; cursor:grab; }
-  #canvas-container.dragging-magnet { cursor:move; }
+  #canvas-container.orbiting { cursor:grabbing; }
   #canvas-container canvas { display:block; }
 
-  #sidebar { width:275px; background:#080f1a; border-left:1px solid #1a3050; display:flex; flex-direction:column; overflow:hidden; }
-  #sidebar-header { padding:16px 18px 12px; border-bottom:1px solid #1a3050; background:#060b14; }
+  /* ── Vertical height slider ── */
+  #height-track {
+    width:64px; background:#060b14; border-right:1px solid #1a3050;
+    display:flex; flex-direction:column; align-items:center;
+    padding:10px 0; flex-shrink:0; gap:4px;
+  }
+  .ht-end-label { font-size:9px; color:#4fc3f7; letter-spacing:1px; text-align:center; line-height:1.4; }
+  .ht-end-label.dim { color:#3a5570; }
+  #height-slider-inner { flex:1; display:flex; align-items:center; justify-content:center; width:100%; position:relative; }
+  #height-zero-tick { position:absolute; left:50%; transform:translateX(-50%); width:28px; height:1px; background:#2a4060; pointer-events:none; }
+  #height-zero-label { position:absolute; right:4px; top:50%; transform:translateY(-50%); font-size:8px; color:#2a4060; pointer-events:none; }
+  #sl-height {
+    -webkit-appearance:none; appearance:none;
+    height:4px;
+    background:linear-gradient(to right,#1a3050,#1a4060,#1a3050);
+    outline:none; cursor:pointer; transform:rotate(-90deg); border-radius:2px;
+  }
+  #sl-height::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; background:#4fc3f7; cursor:pointer; border-radius:50%; box-shadow:0 0 10px rgba(79,195,247,0.7); }
+  #sl-height::-moz-range-thumb { width:22px; height:22px; border:none; border-radius:50%; background:#4fc3f7; cursor:pointer; box-shadow:0 0 10px rgba(79,195,247,0.7); }
+  #ht-val-display { font-family:'Rajdhani',sans-serif; font-weight:600; font-size:13px; color:#4fc3f7; text-align:center; letter-spacing:1px; }
+
+  /* ── Sidebar ── */
+  #sidebar { width:285px; background:#080f1a; border-left:1px solid #1a3050; display:flex; flex-direction:column; overflow:hidden; }
+  #sidebar-header { padding:14px 18px 10px; border-bottom:1px solid #1a3050; background:#060b14; }
   #sidebar-header h1 { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:20px; color:#4fc3f7; letter-spacing:3px; text-transform:uppercase; }
   #sidebar-header p  { font-size:10px; color:#4a6070; letter-spacing:1px; margin-top:2px; }
-
-  #sidebar-body { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:15px; }
+  #sidebar-body { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
   #sidebar-body::-webkit-scrollbar { width:4px; }
   #sidebar-body::-webkit-scrollbar-thumb { background:#1e3a5f; }
 
-  .section-label { font-size:9px; color:#5a7888; letter-spacing:2px; text-transform:uppercase; margin-bottom:7px; }
-
-  .btn { background:#0a1520; border:1px solid #1a3a60; color:#7aabcf; font-family:'Share Tech Mono',monospace; font-size:12px; padding:8px 10px; cursor:pointer; transition:all 0.12s; width:100%; text-align:center; letter-spacing:0.5px; }
+  .section-label { font-size:9px; color:#5a7888; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+  .btn { background:#0a1520; border:1px solid #1a3a60; color:#7aabcf; font-family:'Share Tech Mono',monospace; font-size:11px; padding:7px 8px; cursor:pointer; transition:all 0.12s; width:100%; text-align:center; letter-spacing:0.5px; }
   .btn:hover { background:#142030; border-color:#4fc3f7; color:#c8eeff; }
-  .btn.active { background:#0a2030; border-color:#4fc3f7; color:#4fc3f7; box-shadow:0 0 10px rgba(79,195,247,0.2); }
-  .btn-row { display:flex; gap:8px; }
+  .btn.active { background:#0a2030; border-color:#4fc3f7; color:#4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.2); }
+  .btn.flipped { border-color:#ff6b6b; color:#ff9090; background:#1a0808; }
+  .btn-row { display:flex; gap:6px; }
   .btn-row .btn { flex:1; }
 
-  input[type=range] { width:100%; -webkit-appearance:none; height:2px; background:#1a3050; outline:none; cursor:pointer; display:block; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:#4fc3f7; cursor:pointer; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); }
-  .slider-row { display:flex; align-items:center; gap:10px; }
+  input[type=range]:not(#sl-height) { width:100%; -webkit-appearance:none; height:2px; background:#1a3050; outline:none; cursor:pointer; display:block; }
+  input[type=range]:not(#sl-height)::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:#4fc3f7; cursor:pointer; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); }
+  .slider-row { display:flex; align-items:center; gap:8px; }
   .slider-label { font-size:10px; color:#5a7888; width:52px; flex-shrink:0; }
   .slider-val { font-size:11px; color:#4fc3f7; min-width:36px; text-align:right; }
-
   .divider { border:none; border-top:1px solid #0d1e30; margin:0; }
 
-  .readout-box { background:#0a1828; border:1px solid #1a3050; padding:10px 12px; }
-  .readout-label { font-size:9px; color:#5a7888; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
-  .readout-big { font-family:'Rajdhani',sans-serif; font-weight:600; font-size:26px; letter-spacing:2px; line-height:1; }
-  .readout-unit { font-size:9px; color:#5a7888; letter-spacing:1px; margin-top:2px; }
+  .readout-row { display:flex; gap:8px; }
+  .readout-box { background:#0a1828; border:1px solid #1a3050; padding:8px 10px; flex:1; }
+  .readout-label { font-size:8px; color:#5a7888; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:3px; }
+  .readout-big { font-family:'Rajdhani',sans-serif; font-weight:600; font-size:22px; letter-spacing:1px; line-height:1; }
+  .readout-unit { font-size:8px; color:#5a7888; margin-top:2px; }
   .readout-phi { color:#69f0ae; }
   .readout-emf { color:#ffd54f; }
 
-  .info-box { background:#060e18; border:1px solid #0d1e30; padding:8px 10px; font-size:10px; color:#5a7888; line-height:1.7; }
+  #graph-canvas { width:100%; height:100px; display:block; background:#04080f; border:1px solid #0d1e30; }
 
+  /* Joystick */
+  #joystick-wrap { display:flex; justify-content:center; padding:2px 0; }
+  #joystick { width:110px; height:110px; border-radius:50%; background:#060e18; border:1px solid #1a3050; position:relative; cursor:crosshair; user-select:none; touch-action:none; }
+  #joystick-ring { position:absolute; inset:10px; border-radius:50%; border:1px solid #0d1e30; }
+  #joystick-dot { position:absolute; width:22px; height:22px; border-radius:50%; background:#4fc3f7; box-shadow:0 0 10px rgba(79,195,247,0.5); transform:translate(-50%,-50%); top:50%; left:50%; pointer-events:none; }
+  #joystick.js-active #joystick-dot { box-shadow:0 0 18px rgba(79,195,247,0.9); }
+  .joystick-label { font-size:9px; color:#3a5570; text-align:center; letter-spacing:1px; margin-top:4px; }
+
+  /* Lenz */
+  #lenz-box { background:#060e18; border:1px solid #0d1e30; padding:10px 12px; display:flex; flex-direction:column; gap:7px; }
+  .lenz-row { display:flex; align-items:flex-start; gap:8px; }
+  .lenz-step { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:11px; color:#2a4060; background:#0a1828; border:1px solid #1a3050; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .lenz-text { font-size:10px; line-height:1.5; color:#5a7888; }
+  .lenz-text span { font-family:'Rajdhani',sans-serif; font-weight:600; font-size:12px; }
+  .lenz-inactive { opacity:0.3; }
+
+  .info-box { background:#060e18; border:1px solid #0d1e30; padding:7px 10px; font-size:10px; color:#5a7888; line-height:1.7; }
   .legend-row { display:flex; align-items:center; gap:8px; font-size:10px; color:#7a9aaa; padding:2px 0; }
-  .legend-swatch { width:24px; height:4px; border-radius:2px; flex-shrink:0; }
+  .legend-swatch { width:20px; height:3px; border-radius:2px; flex-shrink:0; }
 </style>
 </head>
 <body>
 
-<div id="canvas-container"></div>
+<div id="canvas-wrap">
+  <div id="height-track">
+    <div class="ht-end-label">▲<br>FAR</div>
+    <div id="height-slider-inner">
+      <input type="range" id="sl-height" min="0.7" max="8" value="3" step="0.1" oninput="onHeightChange(this)">
+    </div>
+    <div id="ht-val-display">3.0</div>
+    <div class="ht-end-label dim">▼<br>NEAR</div>
+  </div>
+  <div id="canvas-container"></div>
+</div>
 
 <div id="sidebar">
   <div id="sidebar-header">
     <h1>Magnetic Flux</h1>
-    <p>Φ = ∫ B · dA</p>
+    <p>Φ = ∫ B · dA &nbsp;·&nbsp; ε = −dΦ/dt</p>
   </div>
   <div id="sidebar-body">
 
-    <!-- Flux readout -->
-    <div class="readout-box">
-      <div class="readout-label">Magnetic Flux Φ</div>
-      <div class="readout-big readout-phi" id="disp-phi">0.000</div>
-      <div class="readout-unit">× 10⁻⁴ T·m²  (normalized)</div>
+    <!-- Readouts -->
+    <div class="readout-row">
+      <div class="readout-box">
+        <div class="readout-label">Flux Φ</div>
+        <div class="readout-big readout-phi" id="disp-phi">0.000</div>
+        <div class="readout-unit">norm. units</div>
+      </div>
+      <div class="readout-box">
+        <div class="readout-label">EMF ε</div>
+        <div class="readout-big readout-emf" id="disp-emf">0.000</div>
+        <div class="readout-unit">norm. units</div>
+      </div>
     </div>
 
-    <!-- EMF readout -->
-    <div class="readout-box">
-      <div class="readout-label">Induced EMF  ε = −dΦ/dt</div>
-      <div class="readout-big readout-emf" id="disp-emf">0.000</div>
-      <div class="readout-unit">normalized units</div>
+    <!-- Field display -->
+    <div>
+      <div class="section-label">Field Display</div>
+      <div class="btn-row">
+        <button class="btn"        id="btn-single" onclick="setFieldMode('single')">① Single</button>
+        <button class="btn active" id="btn-grid"   onclick="setFieldMode('grid')">⊞ Grid</button>
+      </div>
+    </div>
+
+    <!-- Live graph -->
+    <div>
+      <div class="section-label">Live Graph &nbsp;<span style="color:#69f0ae">— Φ</span> &nbsp;<span style="color:#ffd54f">— ε</span></div>
+      <canvas id="graph-canvas"></canvas>
     </div>
 
     <hr class="divider">
 
-    <!-- Field display toggle -->
+    <!-- Lenz's Law -->
     <div>
-      <div class="section-label">Field Display</div>
-      <div class="btn-row">
-        <button class="btn active" id="btn-loop"  onclick="setFieldMode('loop')">Loop Only</button>
-        <button class="btn"        id="btn-full"  onclick="setFieldMode('full')">Full Plane</button>
+      <div class="section-label">Lenz's Law</div>
+      <div id="lenz-box">
+        <div class="lenz-row" id="lenz-row-1">
+          <div class="lenz-step">1</div>
+          <div class="lenz-text">Flux is <span id="lenz-phi-text" style="color:#69f0ae">—</span></div>
+        </div>
+        <div class="lenz-row" id="lenz-row-2">
+          <div class="lenz-step">2</div>
+          <div class="lenz-text">Induced B <span id="lenz-b-text" style="color:#b388ff">—</span></div>
+        </div>
+        <div class="lenz-row" id="lenz-row-3">
+          <div class="lenz-step">3</div>
+          <div class="lenz-text">Current <span id="lenz-i-text" style="color:#ff44cc">—</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Recenter -->
-    <div>
-      <button class="btn" onclick="recenterMagnet()">⊕ Recenter Magnet</button>
-    </div>
+    <hr class="divider">
 
-    <!-- Axis lock -->
+    <!-- Joystick -->
     <div>
-      <div class="section-label">Drag Constraint</div>
-      <div class="btn-row">
-        <button class="btn active" id="btn-free" onclick="setAxisLock('free')">Free</button>
-        <button class="btn"        id="btn-xonly" onclick="setAxisLock('x')">X Axis</button>
-        <button class="btn"        id="btn-zonly" onclick="setAxisLock('z')">Z Axis</button>
+      <div class="section-label">Move Magnet (XZ plane)</div>
+      <div id="joystick-wrap">
+        <div>
+          <div id="joystick">
+            <div id="joystick-ring"></div>
+            <div id="joystick-dot"></div>
+          </div>
+          <div class="joystick-label">drag to position magnet</div>
+        </div>
       </div>
     </div>
 
-    <!-- Height slider -->
-    <div>
-      <div class="section-label">Magnet Height</div>
-      <div class="slider-row">
-        <span class="slider-label">Height</span>
-        <input type="range" id="sl-height" min="-8" max="8" value="3" step="0.1" oninput="onHeightChange(this)">
-        <span class="slider-val" id="val-height">3.0</span>
-      </div>
-    </div>
+    <hr class="divider">
 
-    <!-- Magnet strength -->
+    <!-- Magnet controls -->
     <div>
-      <div class="section-label">Magnet Strength</div>
-      <div class="slider-row">
+      <div class="section-label">Magnet</div>
+      <div class="slider-row" style="margin-bottom:8px">
         <span class="slider-label">Strength</span>
         <input type="range" id="sl-strength" min="0.5" max="3" value="1" step="0.1" oninput="onStrengthChange(this)">
         <span class="slider-val" id="val-strength">1.0×</span>
       </div>
+      <div class="btn-row" style="margin-bottom:6px">
+        <button class="btn" id="btn-flip"   onclick="flipMagnet()">⇅ Flip Polarity</button>
+        <button class="btn" id="btn-center" onclick="recenterMagnet()">⊕ Recenter</button>
+      </div>
+      <button class="btn" id="btn-animate" onclick="toggleAnimate()">▶ Auto Up/Down</button>
+      <div class="slider-row" style="margin-top:6px">
+        <span class="slider-label">Speed</span>
+        <input type="range" id="sl-animspeed" min="0.05" max="1.0" value="0.4" step="0.05" oninput="onAnimSpeedChange(this)">
+        <span class="slider-val" id="val-animspeed">0.40×</span>
+      </div>
+      <div style="margin-top:6px; font-size:9px; color:#3a5570; line-height:1.6; padding:6px 8px; background:#060b14; border:1px solid #0d1e30;">
+        Auto-animate stays above loop.<br>Use ⇅ Flip Polarity to simulate<br>magnet approaching from below.
+      </div>
     </div>
 
     <hr class="divider">
 
-    <!-- Arrow color legend -->
+    <!-- Legend -->
     <div>
-      <div class="section-label">Arrow Color → B⊥ (flux contribution)</div>
+      <div class="section-label">Arrow Color — B · n̂</div>
       <div class="legend-row">
         <div class="legend-swatch" style="background:linear-gradient(90deg,#ff6b35,#ffaa00)"></div>
         Positive (into loop)
@@ -135,17 +215,17 @@
         Negative (out of loop)
       </div>
       <div class="legend-row">
-        <div class="legend-swatch" style="background:#aaaaaa"></div>
-        Near zero
+        <div class="legend-swatch" style="background:#ff44cc"></div>
+        Induced current direction
       </div>
     </div>
 
     <hr class="divider">
 
     <div class="info-box">
-      Drag the magnet to move it.<br>
-      Use axis lock for controlled sweeps.<br>
-      Orbit: right-click drag · Zoom: scroll
+      Orbit: left-drag canvas<br>
+      Zoom: scroll wheel<br>
+      Height: left-edge slider
     </div>
 
   </div>
@@ -156,29 +236,44 @@
 // ═══════════════════════════════════════════════════════
 //  CONSTANTS
 // ═══════════════════════════════════════════════════════
-const LOOP_HALF   = 3.0;     // half-size of square loop (world units)
-const MAGNET_Y    = 3.0;     // height of magnet above loop plane
-const MAX_ARROW   = 0.38;    // max arrow length
-const REF_FIELD   = 0.025;   // field magnitude for arrow length saturation
-const ARROW_HEAD  = 0.22;    // head fraction of arrow length
-
-// Grid configs
-const LOOP_GRID_N = 13;   // 13×13 inside loop
-const FULL_GRID_N = 21;   // 21×21 full plane
-const FULL_HALF   = 7.0;
+const LOOP_HALF    = 3.0;
+const LOOP_GRID_N  = 13;
+const FULL_HALF    = 7.0;
+const MAX_ARROW    = 0.65;
+const REF_FIELD    = 0.025;
+const ARROW_HEAD   = 0.25;
+const N_MARKERS    = 8;
+const EMF_SPEED_K  = 0.9;
+const EMF_THRESH   = 0.003;
+const ANIMATE_CENTER = 4.25;  // oscillate above loop plane
+const ANIMATE_AMP    = 2.75;  // sweeps y=1.5 to y=7.0
 
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
-let magnetX = 0, magnetZ = 0;
-let magnetY = 3.0;          // mutable height
-let magnetStrength = 1.0;
-let fieldMode  = 'loop';
-let axisLock   = 'free';    // 'free' | 'x' | 'z'
+let magnetX = 0, magnetY = 3.0, magnetZ = 0;
+let magnetStrength = 1.0, magnetFlipped = false;
+let fieldMode   = 'grid';
+let autoAnimate = false;
+let animateT    = 0;
+let animateSpeed = 0.4;
+let markerPhase = 0;
+let emf = 0;
+let prevTs = null;
 
-let prevPhi = 0;
-let emf     = 0;
-let prevTs  = null;
+// Graph ring buffer
+const GRAPH_SECS = 12;
+const GRAPH_RATE = 30;
+const GRAPH_LEN  = GRAPH_SECS * GRAPH_RATE;
+const phiHistory = new Float32Array(GRAPH_LEN);
+const emfHistory = new Float32Array(GRAPH_LEN);
+let graphIdx = 0, lastGraphTs = 0;
+
+// Manual-drag EMF: windowed ring buffer
+const W_SIZE   = 12;
+const wPhi     = new Float32Array(W_SIZE);
+const wTs      = new Float32Array(W_SIZE);
+let   wIdx     = 0, wFull = false;
 
 // ═══════════════════════════════════════════════════════
 //  THREE.JS SETUP
@@ -197,11 +292,7 @@ const scene = new THREE.Scene();
 scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
 const camera = new THREE.PerspectiveCamera(45, getW()/getH(), 0.1, 200);
-
-// ── Orbit state ──
-let camTheta  = Math.PI * 0.28;
-let camPhi    = Math.PI * 0.30;
-let camRadius = 22;
+let camTheta = Math.PI*0.28, camPhi = Math.PI*0.30, camRadius = 22;
 
 function updateCamera() {
   camera.position.set(
@@ -214,347 +305,459 @@ function updateCamera() {
 updateCamera();
 
 // ═══════════════════════════════════════════════════════
-//  SCENE GEOMETRY
+//  SCENE: floor grid
 // ═══════════════════════════════════════════════════════
+scene.add(new THREE.GridHelper(24, 48, 0x0a1e30, 0x080f1e));
 
-// Grid floor (faint)
-const gridHelper = new THREE.GridHelper(24, 48, 0x0a1e30, 0x080f1e);
-gridHelper.position.y = -0.05;
-scene.add(gridHelper);
-
-// Square loop — 4 edges as lines
-(function() {
+// ── Square loop: tube geometry ──
+(function(){
   const h = LOOP_HALF;
-  const pts = [
+  const corners = [
     new THREE.Vector3(-h,0,-h), new THREE.Vector3( h,0,-h),
     new THREE.Vector3( h,0, h), new THREE.Vector3(-h,0, h),
     new THREE.Vector3(-h,0,-h)
   ];
-  const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat = new THREE.LineBasicMaterial({ color:0x4fc3f7, linewidth:2 });
-  scene.add(new THREE.Line(geo, mat));
+  const R = 0.06, SEG = 8;
+  const mat = new THREE.MeshBasicMaterial({ color:0x4fc3f7 });
+  for (let i=0; i<corners.length-1; i++) {
+    const a = corners[i], b = corners[i+1];
+    const dir = new THREE.Vector3().subVectors(b,a);
+    const len = dir.length();
+    const mid = new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(R,R,len,SEG), mat);
+    mesh.position.copy(mid);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
+    scene.add(mesh);
+  }
+  corners.forEach(c => {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(R,SEG,SEG), mat);
+    s.position.copy(c);
+    scene.add(s);
+  });
 })();
 
-// Loop normal indicator (faint arrow pointing up)
-(function() {
-  const pts = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,1.5,0)];
-  const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat = new THREE.LineBasicMaterial({ color:0x1a4a60, transparent:true, opacity:0.6 });
-  scene.add(new THREE.Line(geo, mat));
-  // tiny arrowhead for normal
-  const tipPts = [
-    new THREE.Vector3(-0.12, 1.3, 0), new THREE.Vector3(0, 1.5, 0),
-    new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0.12, 1.3, 0)
-  ];
-  const tGeo = new THREE.BufferGeometry().setFromPoints(tipPts);
-  scene.add(new THREE.LineSegments(tGeo, mat));
-})();
-
-// ── Magnet mesh ──
+// ── Magnet ──
 const magnetGroup = new THREE.Group();
-const boxGeo = new THREE.BoxGeometry(0.5, 0.7, 0.5);
-const northMesh = new THREE.Mesh(boxGeo, new THREE.MeshBasicMaterial({ color:0xcc3333 }));
-const southMesh = new THREE.Mesh(boxGeo, new THREE.MeshBasicMaterial({ color:0x3366cc }));
-northMesh.position.y =  0.35;  // N pole on top
-southMesh.position.y = -0.35;  // S pole on bottom (closer to loop)
+const northMat = new THREE.MeshBasicMaterial({ color:0xcc3333 });
+const southMat = new THREE.MeshBasicMaterial({ color:0x3366cc });
+const boxGeo   = new THREE.BoxGeometry(0.5, 0.7, 0.5);
+const northMesh = new THREE.Mesh(boxGeo, northMat);
+const southMesh = new THREE.Mesh(boxGeo, southMat);
+northMesh.position.y =  0.35;
+southMesh.position.y = -0.35;
 magnetGroup.add(northMesh, southMesh);
-// N/S pole labels using a small sphere marker
-const nLabel = new THREE.Mesh(
-  new THREE.SphereGeometry(0.12, 8, 8),
-  new THREE.MeshBasicMaterial({ color:0xff8888 })
-);
-nLabel.position.y = 0.82;
-magnetGroup.add(nLabel);
-magnetGroup.position.set(magnetX, MAGNET_Y, magnetZ);
+magnetGroup.position.set(magnetX, magnetY, magnetZ);
 scene.add(magnetGroup);
 
-// Hitbox sphere (invisible, for raycasting)
-const magnetHitbox = new THREE.Mesh(
-  new THREE.SphereGeometry(1.2, 12, 12),
-  new THREE.MeshBasicMaterial({ visible:false })
-);
-magnetHitbox.position.set(magnetX, MAGNET_Y, magnetZ);
-scene.add(magnetHitbox);
-
-// ── Arrow geometry ──
-// Each arrow: 6 vertices (shaft×2 + head-line1×2 + head-line2×2), 3 floats each
-let arrowCount   = LOOP_GRID_N * LOOP_GRID_N;
-let arrowPosArr  = new Float32Array(arrowCount * 18);
-let arrowColArr  = new Float32Array(arrowCount * 18);
-let arrowGeo     = new THREE.BufferGeometry();
+// ── Field arrows: grid ──
+const arrowCount  = LOOP_GRID_N * LOOP_GRID_N;
+const arrowPosArr = new Float32Array(arrowCount * 18);
+const arrowColArr = new Float32Array(arrowCount * 18);
+const arrowGeo    = new THREE.BufferGeometry();
 arrowGeo.setAttribute('position', new THREE.BufferAttribute(arrowPosArr, 3));
 arrowGeo.setAttribute('color',    new THREE.BufferAttribute(arrowColArr, 3));
-const arrowMat   = new THREE.LineBasicMaterial({ vertexColors:true });
-let arrowLines   = new THREE.LineSegments(arrowGeo, arrowMat);
+const arrowLines  = new THREE.LineSegments(arrowGeo, new THREE.LineBasicMaterial({ vertexColors:true }));
 scene.add(arrowLines);
 
-// ═══════════════════════════════════════════════════════
-//  PHYSICS — DIPOLE FIELD
-// ═══════════════════════════════════════════════════════
-// Magnet: moment m = (0, strength, 0) at (mx, MAGNET_Y, mz)
-// N pole on top, S pole below, moment points upward (+Y)
-// In loop plane (y=0), the field is computed from the 3D dipole formula.
-// Flux = ∫ By dA (loop normal = +Y)
+// ── Field arrow: single center — rendered as 3D tube+cone mesh ──
+const singleGroup = new THREE.Group();
+singleGroup.visible = false;
+scene.add(singleGroup);
+const SARROW_MAT  = new THREE.MeshBasicMaterial({ vertexColors:true });
+// Shaft mesh
+const sShaftGeo  = new THREE.CylinderGeometry(0.06, 0.06, 1, 8);
+const sShaftMesh = new THREE.Mesh(sShaftGeo, new THREE.MeshBasicMaterial({ color:0xffffff }));
+singleGroup.add(sShaftMesh);
+// Head mesh
+const sHeadGeo  = new THREE.ConeGeometry(0.14, 0.3, 8);
+const sHeadMesh = new THREE.Mesh(sHeadGeo, new THREE.MeshBasicMaterial({ color:0xffffff }));
+singleGroup.add(sHeadMesh);
 
-function dipoleB(px, pz) {
-  const M  = magnetStrength;
-  const dx = px - magnetX;
-  const dy = 0 - magnetY;   // field point y=0, magnet at magnetY
-  const dz = pz - magnetZ;
+// ── Current markers: 3D mesh arrows (magenta) ──
+const SHAFT_R  = 0.07, SHAFT_LEN = 0.55;
+const CONE_R   = 0.16, CONE_LEN  = 0.32;
+const EMF_SAT  = 0.08;   // emf value that maps to full brightness
+const markerMat = new THREE.MeshBasicMaterial({ color:0xff44cc, transparent:true, opacity:1.0 });
+const markerGroup = new THREE.Group();
+markerGroup.visible = false;
+scene.add(markerGroup);
+const markerMeshes = [];
+for (let m=0; m<N_MARKERS; m++) {
+  const g = new THREE.Group();
+  // Each mesh gets its OWN material so we can tint per-group if needed
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(SHAFT_R,SHAFT_R,SHAFT_LEN,8), markerMat);
+  shaft.rotation.z = Math.PI/2;
+  shaft.position.x = SHAFT_LEN/2;
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(CONE_R,CONE_LEN,8), markerMat);
+  cone.rotation.z = -Math.PI/2;
+  cone.position.x = SHAFT_LEN + CONE_LEN/2;
+  g.add(shaft, cone);
+  markerGroup.add(g);
+  markerMeshes.push(g);
+}
+
+// ═══════════════════════════════════════════════════════
+//  PHYSICS
+// ═══════════════════════════════════════════════════════
+function dipoleB(px, pz, MY) {
+  const my = (MY !== undefined) ? MY : magnetY;
+  const M  = magnetStrength * (magnetFlipped ? -1 : 1);
+  const dx = px - magnetX, dy = 0 - my, dz = pz - magnetZ;
   const r2 = dx*dx + dy*dy + dz*dz;
   if (r2 < 0.01) return {x:0, y:0, z:0};
-  const r5 = r2 * r2 * Math.sqrt(r2);
-
-  // m = (0, M, 0)  →  m·r_vec = M*dy
-  const mdotr = M * dy;
-  return {
-    x: (3 * mdotr * dx) / r5,
-    y: (3 * mdotr * dy - M * r2) / r5,
-    z: (3 * mdotr * dz) / r5
-  };
+  const r5 = r2*r2*Math.sqrt(r2), mdr = M*dy;
+  return { x:(3*mdr*dx)/r5, y:(3*mdr*dy - M*r2)/r5, z:(3*mdr*dz)/r5 };
 }
 
-// ═══════════════════════════════════════════════════════
-//  ARROW UPDATE
-// ═══════════════════════════════════════════════════════
-function arrowColor(by) {
-  // Map By to color: positive = warm (orange), negative = cool (blue), zero = gray
-  const t = Math.tanh(by / (REF_FIELD * 1.2));  // -1 to 1
-  let r, g, b;
-  if (t >= 0) {
-    r = 0.85 + 0.15*t;
-    g = 0.35 + 0.30*(1-t);
-    b = 0.10 + 0.05*(1-t);
-  } else {
-    const nt = -t;
-    r = 0.05 + 0.10*(1-nt);
-    g = 0.25 + 0.25*(1-nt);
-    b = 0.75 + 0.25*nt;
-  }
-  return {r, g, b};
-}
-
-function setArrow(idx, sx, sz, bx, by, bz) {
-  const mag = Math.sqrt(bx*bx + by*by + bz*bz);
-  const base = idx * 18;
-
-  if (mag < 1e-9) {
-    arrowPosArr.fill(0, base, base+18);
-    arrowColArr.fill(0.3, base, base+18);
-    return;
-  }
-
-  // Saturating length
-  const length = (mag / (mag + REF_FIELD)) * MAX_ARROW * 2;
-  const ux = bx/mag, uy = by/mag, uz = bz/mag;
-
-  // Arrow starts slightly above loop plane
-  const sy = 0.02;
-  const ex = sx + ux*length;
-  const ey = sy + uy*length;
-  const ez = sz + uz*length;
-
-  const hl = length * ARROW_HEAD;
-  const hw = hl * 0.45;
-
-  // Perpendicular for arrowhead (consistent across all arrows)
-  let px, py_p, pz;
-  if (Math.abs(uy) < 0.85) {
-    // cross dir with (0,1,0)
-    const pm = Math.sqrt(ux*ux*0 + uz*uz);  // |(-uz,0,ux)|
-    px  = -uz / Math.sqrt(uz*uz + ux*ux + 1e-12);
-    py_p = 0;
-    pz  =  ux / Math.sqrt(uz*uz + ux*ux + 1e-12);
-  } else {
-    // cross dir with (1,0,0)
-    px  = 0;
-    py_p = uz / Math.sqrt(uy*uy*0 + uz*uz + uy*uy + 1e-12);
-    pz  = -uy / Math.sqrt(uy*uy + uz*uz + 1e-12);
-  }
-
-  const hbx = ex - ux*hl, hby = ey - uy*hl, hbz = ez - uz*hl;
-
-  // Shaft
-  arrowPosArr[base+ 0]=sx;          arrowPosArr[base+ 1]=sy;           arrowPosArr[base+ 2]=sz;
-  arrowPosArr[base+ 3]=ex;          arrowPosArr[base+ 4]=ey;           arrowPosArr[base+ 5]=ez;
-  // Head 1
-  arrowPosArr[base+ 6]=ex;          arrowPosArr[base+ 7]=ey;           arrowPosArr[base+ 8]=ez;
-  arrowPosArr[base+ 9]=hbx+px*hw;  arrowPosArr[base+10]=hby+py_p*hw;  arrowPosArr[base+11]=hbz+pz*hw;
-  // Head 2
-  arrowPosArr[base+12]=ex;          arrowPosArr[base+13]=ey;           arrowPosArr[base+14]=ez;
-  arrowPosArr[base+15]=hbx-px*hw;  arrowPosArr[base+16]=hby-py_p*hw;  arrowPosArr[base+17]=hbz-pz*hw;
-
-  const c = arrowColor(by);
-  for (let v = 0; v < 6; v++) {
-    arrowColArr[base+v*3  ] = c.r;
-    arrowColArr[base+v*3+1] = c.g;
-    arrowColArr[base+v*3+2] = c.b;
-  }
-}
-
-function rebuildArrowGrid() {
-  scene.remove(arrowLines);
-  const N    = (fieldMode === 'loop') ? LOOP_GRID_N : FULL_GRID_N;
-  const half = (fieldMode === 'loop') ? LOOP_HALF   : FULL_HALF;
-  arrowCount  = N * N;
-  arrowPosArr = new Float32Array(arrowCount * 18);
-  arrowColArr = new Float32Array(arrowCount * 18);
-  arrowGeo    = new THREE.BufferGeometry();
-  arrowGeo.setAttribute('position', new THREE.BufferAttribute(arrowPosArr, 3));
-  arrowGeo.setAttribute('color',    new THREE.BufferAttribute(arrowColArr, 3));
-  arrowLines  = new THREE.LineSegments(arrowGeo, arrowMat);
-  scene.add(arrowLines);
-}
-
-function updateArrows() {
-  const N    = (fieldMode === 'loop') ? LOOP_GRID_N : FULL_GRID_N;
-  const half = (fieldMode === 'loop') ? LOOP_HALF   : FULL_HALF;
-  const step = (2 * half) / (N - 1);
-  let phi = 0, idx = 0;
-  const dA = step * step;
-
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < N; j++) {
-      const px = -half + j * step;
-      const pz = -half + i * step;
-      const {x: bx, y: by, z: bz} = dipoleB(px, pz);
-      setArrow(idx, px, pz, bx, by, bz);
-
-      // Flux: only accumulate from points inside the loop
-      if (fieldMode === 'loop' ||
-         (px >= -LOOP_HALF && px <= LOOP_HALF && pz >= -LOOP_HALF && pz <= LOOP_HALF)) {
-        phi += by * dA;
-      }
-      idx++;
+function computePhi(MY) {
+  const step = (2*LOOP_HALF) / (LOOP_GRID_N-1);
+  const dA   = step * step;
+  let phi = 0;
+  for (let i=0; i<LOOP_GRID_N; i++) {
+    for (let j=0; j<LOOP_GRID_N; j++) {
+      phi += dipoleB(-LOOP_HALF+j*step, -LOOP_HALF+i*step, MY).y * dA;
     }
   }
-
-  arrowGeo.attributes.position.needsUpdate = true;
-  arrowGeo.attributes.color.needsUpdate    = true;
   return phi;
 }
 
 // ═══════════════════════════════════════════════════════
-//  UI CALLBACKS
+//  ARROW RENDERING
 // ═══════════════════════════════════════════════════════
-function recenterMagnet() {
-  magnetX = 0; magnetZ = 0;
-  magnetGroup.position.set(0, magnetY, 0);
-  magnetHitbox.position.set(0, magnetY, 0);
+function arrowColor(by) {
+  const t = Math.tanh(by / (REF_FIELD*1.2));
+  if (t >= 0) return { r:0.85+0.15*t, g:0.35+0.30*(1-t), b:0.10 };
+  const n = -t;
+  return { r:0.05, g:0.25+0.25*(1-n), b:0.75+0.25*n };
 }
 
-function setAxisLock(mode) {
-  axisLock = mode;
-  document.getElementById('btn-free').classList.toggle('active',  mode === 'free');
-  document.getElementById('btn-xonly').classList.toggle('active', mode === 'x');
-  document.getElementById('btn-zonly').classList.toggle('active', mode === 'z');
+function setArrow(idx, sx, sz, bx, by, bz, posArr, colArr, scale) {
+  scale = scale || 1.0;
+  const mag = Math.sqrt(bx*bx+by*by+bz*bz);
+  const base = idx*18;
+  if (mag < 1e-9) { posArr.fill(0,base,base+18); colArr.fill(0.2,base,base+18); return; }
+  const len = (mag/(mag+REF_FIELD))*MAX_ARROW*2*scale;
+  const ux=bx/mag, uy=by/mag, uz=bz/mag;
+  const sy=0.02, ex=sx+ux*len, ey=sy+uy*len, ez=sz+uz*len;
+  const hl=len*ARROW_HEAD, hw=hl*0.45;
+  let px, pyp, pz;
+  if (Math.abs(uy) < 0.85) {
+    const d=Math.sqrt(uz*uz+ux*ux+1e-12); px=-uz/d; pyp=0; pz=ux/d;
+  } else {
+    const d=Math.sqrt(uy*uy+uz*uz+1e-12); px=0; pyp=uz/d; pz=-uy/d;
+  }
+  const hbx=ex-ux*hl, hby=ey-uy*hl, hbz=ez-uz*hl;
+  posArr[base+ 0]=sx;        posArr[base+ 1]=sy;       posArr[base+ 2]=sz;
+  posArr[base+ 3]=ex;        posArr[base+ 4]=ey;       posArr[base+ 5]=ez;
+  posArr[base+ 6]=ex;        posArr[base+ 7]=ey;       posArr[base+ 8]=ez;
+  posArr[base+ 9]=hbx+px*hw; posArr[base+10]=hby+pyp*hw; posArr[base+11]=hbz+pz*hw;
+  posArr[base+12]=ex;        posArr[base+13]=ey;       posArr[base+14]=ez;
+  posArr[base+15]=hbx-px*hw; posArr[base+16]=hby-pyp*hw; posArr[base+17]=hbz-pz*hw;
+  const c = arrowColor(by);
+  for (let v=0; v<6; v++) { colArr[base+v*3]=c.r; colArr[base+v*3+1]=c.g; colArr[base+v*3+2]=c.b; }
 }
 
-function onHeightChange(el) {
-  magnetY = parseFloat(el.value);
-  document.getElementById('val-height').textContent = magnetY.toFixed(1);
-  magnetGroup.position.set(magnetX, magnetY, magnetZ);
-  magnetHitbox.position.set(magnetX, magnetY, magnetZ);
-}
+const _sUp   = new THREE.Vector3(0,1,0);
+const _sDir  = new THREE.Vector3();
+const _sQuat = new THREE.Quaternion();
 
-function setFieldMode(m) {
-  fieldMode = m;
-  document.getElementById('btn-loop').classList.toggle('active', m === 'loop');
-  document.getElementById('btn-full').classList.toggle('active', m === 'full');
-  rebuildArrowGrid();
-}
-
-function onStrengthChange(el) {
-  magnetStrength = parseFloat(el.value);
-  document.getElementById('val-strength').textContent = magnetStrength.toFixed(1) + '×';
-}
-
-// ═══════════════════════════════════════════════════════
-//  MOUSE — ORBIT + MAGNET DRAG
-// ═══════════════════════════════════════════════════════
-const raycaster   = new THREE.Raycaster();
-const _dragPt     = new THREE.Vector3();
-let dragPlane     = new THREE.Plane(new THREE.Vector3(0, 1, 0), -magnetY);
-
-let isDraggingMagnet = false;
-let isOrbiting       = false;
-let lastMouseX = 0, lastMouseY = 0;
-
-function getNDC(e) {
-  const rect = renderer.domElement.getBoundingClientRect();
-  return new THREE.Vector2(
-    (e.clientX - rect.left) / rect.width  *  2 - 1,
-   -(e.clientY - rect.top)  / rect.height *  2 + 1
-  );
-}
-
-renderer.domElement.addEventListener('mousedown', e => {
-  // Left button: check if on magnet
-  if (e.button === 0) {
-    raycaster.setFromCamera(getNDC(e), camera);
-    const hits = raycaster.intersectObject(magnetHitbox);
-    if (hits.length > 0) {
-      isDraggingMagnet = true;
-      container.classList.add('dragging-magnet');
-      e.preventDefault();
-      return;
+function updateArrows() {
+  const step = (2*LOOP_HALF)/(LOOP_GRID_N-1);
+  if (fieldMode === 'grid') {
+    arrowLines.visible  = true;
+    singleGroup.visible = false;
+    let idx = 0;
+    for (let i=0; i<LOOP_GRID_N; i++) {
+      for (let j=0; j<LOOP_GRID_N; j++) {
+        const px=-LOOP_HALF+j*step, pz=-LOOP_HALF+i*step;
+        const {x:bx,y:by,z:bz} = dipoleB(px,pz);
+        setArrow(idx++, px, pz, bx, by, bz, arrowPosArr, arrowColArr);
+      }
+    }
+    arrowGeo.attributes.position.needsUpdate = true;
+    arrowGeo.attributes.color.needsUpdate    = true;
+  } else {
+    arrowLines.visible  = false;
+    singleGroup.visible = true;
+    const {x:bx,y:by,z:bz} = dipoleB(0,0);
+    const mag = Math.sqrt(bx*bx+by*by+bz*bz);
+    if (mag > 1e-9) {
+      const len      = (mag/(mag+REF_FIELD)) * MAX_ARROW * 4;  // 2× scale
+      const shaftLen = len * (1 - ARROW_HEAD);
+      const headLen  = len * ARROW_HEAD;
+      _sDir.set(bx/mag, by/mag, bz/mag);
+      _sQuat.setFromUnitVectors(_sUp, _sDir);
+      // Shaft: centered at half shaftLen along direction
+      sShaftMesh.geometry.dispose();
+      sShaftMesh.geometry = new THREE.CylinderGeometry(0.06, 0.06, shaftLen, 8);
+      sShaftMesh.position.set(0, 0.02, 0).addScaledVector(_sDir, shaftLen/2);
+      sShaftMesh.quaternion.copy(_sQuat);
+      // Head: centered at shaftLen + headLen/2
+      sHeadMesh.geometry.dispose();
+      sHeadMesh.geometry = new THREE.ConeGeometry(0.14, headLen, 8);
+      sHeadMesh.position.set(0, 0.02, 0).addScaledVector(_sDir, shaftLen + headLen/2);
+      sHeadMesh.quaternion.copy(_sQuat);
+      // Color
+      const c = arrowColor(by);
+      sShaftMesh.material.color.setRGB(c.r, c.g, c.b);
+      sHeadMesh.material.color.setRGB(c.r, c.g, c.b);
     }
   }
-  // Right button OR left on background: orbit
-  if (e.button === 2 || e.button === 0) {
-    isOrbiting = true;
-  }
-  lastMouseX = e.clientX;
-  lastMouseY = e.clientY;
-});
+}
 
-window.addEventListener('mousemove', e => {
-  if (isDraggingMagnet) {
-    raycaster.setFromCamera(getNDC(e), camera);
-    dragPlane.constant = -magnetY;
-    if (raycaster.ray.intersectPlane(dragPlane, _dragPt)) {
-      const nx = Math.max(-FULL_HALF, Math.min(FULL_HALF, _dragPt.x));
-      const nz = Math.max(-FULL_HALF, Math.min(FULL_HALF, _dragPt.z));
-      if (axisLock === 'free') { magnetX = nx; magnetZ = nz; }
-      else if (axisLock === 'x') { magnetX = nx; }
-      else if (axisLock === 'z') { magnetZ = nz; }
-      magnetGroup.position.set(magnetX, magnetY, magnetZ);
-      magnetHitbox.position.set(magnetX, magnetY, magnetZ);
-    }
+// ═══════════════════════════════════════════════════════
+//  EMF CALCULATION
+//  Auto mode: analytical dΦ/dY × dY/dt  (perfectly smooth)
+//  Manual mode: windowed numerical derivative
+// ═══════════════════════════════════════════════════════
+function computeEmfAuto() {
+  const dYdt = ANIMATE_AMP * 2*Math.PI * animateSpeed * Math.cos(2*Math.PI * animateSpeed * animateT);
+  const eps = 0.1;
+  const dPhidY = (computePhi(magnetY + eps) - computePhi(magnetY - eps)) / (2*eps);
+  return -(dPhidY * dYdt);
+}
+
+function updateEmfManual(phi, ts) {
+  wPhi[wIdx] = phi;
+  wTs [wIdx] = ts;
+  const oldIdx = (wIdx + 1) % W_SIZE;
+  if (wFull) {
+    const dPhi = phi - wPhi[oldIdx];
+    const dT   = (ts  - wTs [oldIdx]) / 1000;
+    if (dT > 0.001) emf = -dPhi / dT;
+  }
+  wIdx = (wIdx + 1) % W_SIZE;
+  if (wIdx === 0) wFull = true;
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOOP PATH — CCW from above
+// ═══════════════════════════════════════════════════════
+function loopPosDir(t) {
+  const s = ((t % 1) + 1) % 1;
+  const dist = s * 4;
+  const L = LOOP_HALF * 2;
+  const Y = 0.12;
+  if (dist < 1) { const u=dist;   return {x:-LOOP_HALF+u*L, y:Y, z:-LOOP_HALF, tx:1,  tz:0 }; }
+  if (dist < 2) { const u=dist-1; return {x: LOOP_HALF,     y:Y, z:-LOOP_HALF+u*L, tx:0, tz:1 }; }
+  if (dist < 3) { const u=dist-2; return {x: LOOP_HALF-u*L, y:Y, z: LOOP_HALF, tx:-1, tz:0 }; }
+  const u=dist-3; return {x:-LOOP_HALF, y:Y, z:LOOP_HALF-u*L, tx:0, tz:-1};
+}
+
+// ═══════════════════════════════════════════════════════
+//  CURRENT MARKERS
+// ═══════════════════════════════════════════════════════
+const _fromVec = new THREE.Vector3(1, 0, 0);
+const _toVec   = new THREE.Vector3();
+
+function updateMarkers(dt) {
+  if (Math.abs(emf) < EMF_THRESH) { markerGroup.visible = false; return; }
+  markerGroup.visible = true;
+
+  // Opacity: fades in from threshold up to EMF_SAT
+  const opacity = Math.min(1.0, (Math.abs(emf) - EMF_THRESH) / (EMF_SAT - EMF_THRESH));
+  markerMat.color.setHex(0xff44cc);
+  markerMat.opacity = 0.15 + 0.85 * opacity;
+
+  markerPhase = ((markerPhase - EMF_SPEED_K * emf * dt) % 1 + 1) % 1;
+  for (let m=0; m<N_MARKERS; m++) {
+    const t = (markerPhase + m/N_MARKERS) % 1;
+    const {x, y, z, tx:rawTx, tz:rawTz} = loopPosDir(t);
+    const dir = emf >= 0 ? -1 : 1;
+    const tx = rawTx*dir, tz = rawTz*dir;
+    const g2 = markerMeshes[m];
+    g2.position.set(x, y, z);
+    g2.quaternion.setFromUnitVectors(_fromVec, _toVec.set(tx, 0, tz).normalize());
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  LENZ'S LAW PANEL
+// ═══════════════════════════════════════════════════════
+function updateLenz() {
+  const active = Math.abs(emf) > EMF_THRESH;
+  const dPhiDt = -emf;
+  ['lenz-row-1','lenz-row-2','lenz-row-3'].forEach(id => {
+    document.getElementById(id).classList.toggle('lenz-inactive', !active);
+  });
+  if (!active) {
+    document.getElementById('lenz-phi-text').textContent = 'not changing';
+    document.getElementById('lenz-b-text').textContent   = '—';
+    document.getElementById('lenz-i-text').textContent   = '—';
     return;
   }
-  if (isOrbiting) {
-    const dx = e.clientX - lastMouseX;
-    const dy = e.clientY - lastMouseY;
-    camTheta -= dx * 0.008;
-    camPhi    = Math.max(0.08, Math.min(Math.PI * 0.48, camPhi + dy * 0.008));
-    updateCamera();
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
+  document.getElementById('lenz-phi-text').textContent = dPhiDt > 0 ? 'increasing ↑' : 'decreasing ↓';
+  document.getElementById('lenz-b-text').textContent   = dPhiDt > 0 ? 'opposes → points ↓ (−Y)' : 'opposes → points ↑ (+Y)';
+  document.getElementById('lenz-i-text').textContent   = dPhiDt > 0 ? 'clockwise (from above)' : 'counter-clockwise';
+}
+
+// ═══════════════════════════════════════════════════════
+//  LIVE GRAPH
+// ═══════════════════════════════════════════════════════
+const graphCanvas = document.getElementById('graph-canvas');
+const gctx = graphCanvas.getContext('2d');
+function resizeGraph() {
+  graphCanvas.width  = graphCanvas.offsetWidth  * (window.devicePixelRatio||1);
+  graphCanvas.height = graphCanvas.offsetHeight * (window.devicePixelRatio||1);
+}
+resizeGraph();
+
+function drawGraph() {
+  const W=graphCanvas.width, H=graphCanvas.height;
+  const H2 = H/2;
+  gctx.fillStyle='#04080f'; gctx.fillRect(0,0,W,H);
+
+  // Divider
+  gctx.strokeStyle='#1a3050'; gctx.lineWidth=1;
+  gctx.beginPath(); gctx.moveTo(0,H2); gctx.lineTo(W,H2); gctx.stroke();
+
+  // Center lines for each panel
+  gctx.strokeStyle='#0a1828';
+  gctx.beginPath(); gctx.moveTo(0,H2/2); gctx.lineTo(W,H2/2); gctx.stroke();
+  gctx.beginPath(); gctx.moveTo(0,H2+H2/2); gctx.lineTo(W,H2+H2/2); gctx.stroke();
+
+  // Panel labels
+  gctx.fillStyle='#2a6040'; gctx.font=`${9*(window.devicePixelRatio||1)}px Share Tech Mono,monospace`;
+  gctx.fillText('Φ', 4, H2/2 - 4);
+  gctx.fillStyle='#706020';
+  gctx.fillText('ε', 4, H2 + H2/2 - 4);
+
+  let pMax=0.001, eMax=0.001;
+  for (let i=0;i<GRAPH_LEN;i++) { pMax=Math.max(pMax,Math.abs(phiHistory[i])); eMax=Math.max(eMax,Math.abs(emfHistory[i])); }
+  pMax*=1.3; eMax*=1.3;
+
+  // Phi trace — top half
+  gctx.strokeStyle='#69f0ae'; gctx.lineWidth=1.5; gctx.beginPath();
+  for (let k=0;k<GRAPH_LEN;k++) {
+    const i=(graphIdx+k)%GRAPH_LEN;
+    const x=(k/(GRAPH_LEN-1))*W;
+    const y=H2/2 - (phiHistory[i]/pMax)*(H2/2 - 3);
+    k===0?gctx.moveTo(x,y):gctx.lineTo(x,y);
   }
-});
+  gctx.stroke();
 
-window.addEventListener('mouseup', () => {
-  isDraggingMagnet = false;
-  isOrbiting       = false;
-  container.classList.remove('dragging-magnet');
-});
-
-renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
-
-renderer.domElement.addEventListener('wheel', e => {
-  camRadius = Math.max(8, Math.min(45, camRadius + e.deltaY * 0.04));
-  updateCamera();
-  e.preventDefault();
-}, { passive:false });
+  // EMF trace — bottom half
+  gctx.strokeStyle='#ffd54f'; gctx.lineWidth=1.5; gctx.beginPath();
+  for (let k=0;k<GRAPH_LEN;k++) {
+    const i=(graphIdx+k)%GRAPH_LEN;
+    const x=(k/(GRAPH_LEN-1))*W;
+    const y=H2 + H2/2 - (emfHistory[i]/eMax)*(H2/2 - 3);
+    k===0?gctx.moveTo(x,y):gctx.lineTo(x,y);
+  }
+  gctx.stroke();
+}
 
 // ═══════════════════════════════════════════════════════
-//  RESIZE
+//  JOYSTICK
 // ═══════════════════════════════════════════════════════
-window.addEventListener('resize', () => {
+const joystick = document.getElementById('joystick');
+const jsDot    = document.getElementById('joystick-dot');
+const JS_R = 55, JS_RANGE = FULL_HALF;
+let jsActive=false, jsCX=0, jsCY=0;
+
+function jsStart(cx,cy) {
+  jsActive=true;
+  const r=joystick.getBoundingClientRect();
+  jsCX=r.left+r.width/2; jsCY=r.top+r.height/2;
+  joystick.classList.add('js-active'); jsMove(cx,cy);
+}
+function jsMove(cx,cy) {
+  if (!jsActive) return;
+  let dx=cx-jsCX, dy=cy-jsCY;
+  const dist=Math.sqrt(dx*dx+dy*dy), maxR=JS_R-11;
+  if (dist>maxR) { dx*=maxR/dist; dy*=maxR/dist; }
+  jsDot.style.left=(JS_R+dx)+'px'; jsDot.style.top=(JS_R+dy)+'px';
+  magnetX=(dx/maxR)*JS_RANGE; magnetZ=(dy/maxR)*JS_RANGE;
+  magnetGroup.position.set(magnetX, magnetY, magnetZ);
+}
+function jsEnd() { jsActive=false; joystick.classList.remove('js-active'); }
+
+joystick.addEventListener('mousedown',  e=>{e.stopPropagation();e.preventDefault();jsStart(e.clientX,e.clientY);});
+window.addEventListener  ('mousemove',  e=>jsMove(e.clientX,e.clientY));
+window.addEventListener  ('mouseup',    ()=>jsEnd());
+joystick.addEventListener('touchstart', e=>{e.preventDefault();jsStart(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+window.addEventListener  ('touchmove',  e=>{if(jsActive)jsMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+window.addEventListener  ('touchend',   ()=>jsEnd());
+
+// ═══════════════════════════════════════════════════════
+//  ORBIT
+// ═══════════════════════════════════════════════════════
+let isOrbiting=false, lastMX=0, lastMY=0;
+renderer.domElement.addEventListener('mousedown', e=>{
+  if (e.button===0) { isOrbiting=true; lastMX=e.clientX; lastMY=e.clientY; container.classList.add('orbiting'); }
+});
+window.addEventListener('mousemove', e=>{
+  if (!isOrbiting) return;
+  camTheta -= (e.clientX-lastMX)*0.008;
+  camPhi = Math.max(0.08, Math.min(Math.PI*0.92, camPhi+(e.clientY-lastMY)*0.008));
+  updateCamera(); lastMX=e.clientX; lastMY=e.clientY;
+});
+window.addEventListener('mouseup', ()=>{ isOrbiting=false; container.classList.remove('orbiting'); });
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel', e=>{
+  camRadius=Math.max(8,Math.min(45,camRadius+e.deltaY*0.04));
+  updateCamera(); e.preventDefault();
+},{passive:false});
+
+// ═══════════════════════════════════════════════════════
+//  UI CALLBACKS
+// ═══════════════════════════════════════════════════════
+function setFieldMode(m) {
+  fieldMode = m;
+  document.getElementById('btn-single').classList.toggle('active', m==='single');
+  document.getElementById('btn-grid').classList.toggle('active',   m==='grid');
+}
+function onHeightChange(el) {
+  magnetY = Math.max(0.7, parseFloat(el.value));
+  document.getElementById('ht-val-display').textContent = magnetY.toFixed(1);
+  magnetGroup.position.set(magnetX, magnetY, magnetZ);
+}
+function onStrengthChange(el) {
+  magnetStrength = parseFloat(el.value);
+  document.getElementById('val-strength').textContent = magnetStrength.toFixed(1)+'×';
+}
+function flipMagnet() {
+  magnetFlipped = !magnetFlipped;
+  northMat.color.setHex(magnetFlipped ? 0x3366cc : 0xcc3333);
+  southMat.color.setHex(magnetFlipped ? 0xcc3333 : 0x3366cc);
+  const btn = document.getElementById('btn-flip');
+  btn.classList.toggle('flipped', magnetFlipped);
+  btn.textContent = magnetFlipped ? '⇅ Polarity Flipped' : '⇅ Flip Polarity';
+}
+function recenterMagnet() {
+  magnetX=0; magnetZ=0;
+  jsDot.style.left='50%'; jsDot.style.top='50%';
+  magnetGroup.position.set(0, magnetY, 0);
+}
+function toggleAnimate() {
+  autoAnimate = !autoAnimate;
+  const btn = document.getElementById('btn-animate');
+  btn.classList.toggle('active', autoAnimate);
+  btn.textContent = autoAnimate ? '■ Stop' : '▶ Auto Up/Down';
+  // Sync phase to current height for smooth start
+  if (autoAnimate) animateT = Math.asin(Math.max(-1,Math.min(1, (magnetY-ANIMATE_CENTER)/ANIMATE_AMP))) / (2*Math.PI*animateSpeed);
+  // Reset windowed buffer so manual EMF is fresh when stopped
+  wIdx=0; wFull=false;
+}
+function onAnimSpeedChange(el) {
+  animateSpeed = parseFloat(el.value);
+  document.getElementById('val-animspeed').textContent = animateSpeed.toFixed(2)+'×';
+}
+
+// ── Size height slider to fill its container ──
+function resizeHeightSlider() {
+  const inner = document.getElementById('height-slider-inner');
+  const sl    = document.getElementById('sl-height');
+  sl.style.width = inner.clientHeight + 'px';
+}
+resizeHeightSlider();
+
+window.addEventListener('resize', ()=>{
+  resizeHeightSlider();
   renderer.setSize(getW(), getH());
-  camera.aspect = getW() / getH();
+  camera.aspect = getW()/getH();
   camera.updateProjectionMatrix();
+  resizeGraph();
 });
 
 // ═══════════════════════════════════════════════════════
@@ -562,21 +765,44 @@ window.addEventListener('resize', () => {
 // ═══════════════════════════════════════════════════════
 function animate(ts) {
   requestAnimationFrame(animate);
+  const dt = (prevTs !== null) ? Math.min((ts-prevTs)/1000, 0.05) : 0;
+  prevTs = ts;
 
-  const phi = updateArrows();
-
-  // EMF = -dΦ/dt (numerical)
-  if (prevTs !== null) {
-    const dt = (ts - prevTs) / 1000;
-    if (dt > 0) emf = -(phi - prevPhi) / dt;
+  // Update magnet position
+  if (autoAnimate) {
+    animateT += dt;
+    magnetY = Math.max(0.7, ANIMATE_CENTER + ANIMATE_AMP * Math.sin(2*Math.PI * animateSpeed * animateT));
+    magnetGroup.position.set(magnetX, magnetY, magnetZ);
+    document.getElementById('sl-height').value = magnetY;
+    document.getElementById('ht-val-display').textContent = magnetY.toFixed(1);
   }
-  prevPhi = phi;
-  prevTs  = ts;
 
-  // Display
-  document.getElementById('disp-phi').textContent = (phi * 1e4).toFixed(3);
-  document.getElementById('disp-emf').textContent = emf.toFixed(3);
+  // Compute flux
+  const phi = computePhi(magnetY);
 
+  // Compute EMF
+  if (autoAnimate) {
+    emf = computeEmfAuto();
+  } else {
+    updateEmfManual(phi, ts);
+  }
+
+  // Update visuals
+  updateArrows();
+  updateMarkers(dt);
+  updateLenz();
+
+  // Graph
+  if (ts - lastGraphTs >= 1000/GRAPH_RATE) {
+    phiHistory[graphIdx] = phi;
+    emfHistory[graphIdx] = emf;
+    graphIdx = (graphIdx+1) % GRAPH_LEN;
+    lastGraphTs = ts;
+    drawGraph();
+  }
+
+  document.getElementById('disp-phi').textContent = (phi*1e4).toFixed(3);
+  document.getElementById('disp-emf').textContent = (emf*1e3).toFixed(3);
   renderer.render(scene, camera);
 }
 
