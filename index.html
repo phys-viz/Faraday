@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Magnetic Flux</title>
+<title>Magnetic Flux · Faraday's Law</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -22,8 +22,6 @@
   .ht-end-label { font-size:9px; color:#4fc3f7; letter-spacing:1px; text-align:center; line-height:1.4; }
   .ht-end-label.dim { color:#3a5570; }
   #height-slider-inner { flex:1; display:flex; align-items:center; justify-content:center; width:100%; position:relative; }
-  #height-zero-tick { position:absolute; left:50%; transform:translateX(-50%); width:28px; height:1px; background:#2a4060; pointer-events:none; }
-  #height-zero-label { position:absolute; right:4px; top:50%; transform:translateY(-50%); font-size:8px; color:#2a4060; pointer-events:none; }
   #sl-height {
     -webkit-appearance:none; appearance:none;
     height:4px;
@@ -35,7 +33,7 @@
   #ht-val-display { font-family:'Rajdhani',sans-serif; font-weight:600; font-size:13px; color:#4fc3f7; text-align:center; letter-spacing:1px; }
 
   /* ── Sidebar ── */
-  #sidebar { width:285px; background:#080f1a; border-left:1px solid #1a3050; display:flex; flex-direction:column; overflow:hidden; }
+  #sidebar { width:290px; background:#080f1a; border-left:1px solid #1a3050; display:flex; flex-direction:column; overflow:hidden; }
   #sidebar-header { padding:14px 18px 10px; border-bottom:1px solid #1a3050; background:#060b14; }
   #sidebar-header h1 { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:20px; color:#4fc3f7; letter-spacing:3px; text-transform:uppercase; }
   #sidebar-header p  { font-size:10px; color:#4a6070; letter-spacing:1px; margin-top:2px; }
@@ -48,8 +46,15 @@
   .btn:hover { background:#142030; border-color:#4fc3f7; color:#c8eeff; }
   .btn.active { background:#0a2030; border-color:#4fc3f7; color:#4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.2); }
   .btn.flipped { border-color:#ff6b6b; color:#ff9090; background:#1a0808; }
+  .btn.paused  { border-color:#ffd54f; color:#ffd54f; background:#1a1400; }
   .btn-row { display:flex; gap:6px; }
   .btn-row .btn { flex:1; }
+
+  /* Toggle button */
+  .toggle-btn { background:#060e18; border:1px solid #1a3050; color:#3a5570; font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 8px; cursor:pointer; transition:all 0.12s; letter-spacing:0.5px; white-space:nowrap; }
+  .toggle-btn:hover { border-color:#4fc3f7; color:#7aabcf; }
+  .toggle-btn.on { border-color:#4fc3f7; color:#4fc3f7; background:#08202e; }
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
 
   input[type=range]:not(#sl-height) { width:100%; -webkit-appearance:none; height:2px; background:#1a3050; outline:none; cursor:pointer; display:block; }
   input[type=range]:not(#sl-height)::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:#4fc3f7; cursor:pointer; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); }
@@ -124,15 +129,6 @@
       </div>
     </div>
 
-    <!-- Field display -->
-    <div>
-      <div class="section-label">Field Display</div>
-      <div class="btn-row">
-        <button class="btn"        id="btn-single" onclick="setFieldMode('single')">① Single</button>
-        <button class="btn active" id="btn-grid"   onclick="setFieldMode('grid')">⊞ Grid</button>
-      </div>
-    </div>
-
     <!-- Live graph -->
     <div>
       <div class="section-label">Live Graph &nbsp;<span style="color:#69f0ae">— Φ</span> &nbsp;<span style="color:#ffd54f">— ε</span></div>
@@ -141,22 +137,54 @@
 
     <hr class="divider">
 
+    <!-- B Field Display -->
+    <div>
+      <div class="section-header">
+        <div class="section-label" style="margin-bottom:0">B Field</div>
+        <button class="toggle-btn on" id="tog-bfield" onclick="toggleBField()">● HIDE</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn"        id="btn-single" onclick="setFieldMode('single')">① Single</button>
+        <button class="btn active" id="btn-grid"   onclick="setFieldMode('grid')">⊞ Grid</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
     <!-- Lenz's Law -->
     <div>
-      <div class="section-label">Lenz's Law</div>
+      <div class="section-header">
+        <div class="section-label" style="margin-bottom:0">Lenz's Law: Induced Current</div>
+        <button class="toggle-btn on" id="tog-current" onclick="toggleCurrent()">● HIDE</button>
+      </div>
       <div id="lenz-box">
         <div class="lenz-row" id="lenz-row-1">
           <div class="lenz-step">1</div>
-          <div class="lenz-text">Flux is <span id="lenz-phi-text" style="color:#69f0ae">—</span></div>
+          <div class="lenz-text"><span id="lenz-phi-text" style="color:#69f0ae">—</span></div>
         </div>
         <div class="lenz-row" id="lenz-row-2">
           <div class="lenz-step">2</div>
-          <div class="lenz-text">Induced B <span id="lenz-b-text" style="color:#b388ff">—</span></div>
+          <div class="lenz-text">Induced B points <span id="lenz-b-text" style="color:#b388ff">—</span></div>
         </div>
         <div class="lenz-row" id="lenz-row-3">
           <div class="lenz-step">3</div>
-          <div class="lenz-text">Current <span id="lenz-i-text" style="color:#ff44cc">—</span></div>
+          <div class="lenz-text">Induced current: <span id="lenz-i-text" style="color:#ff44cc">—</span></div>
         </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Induced B -->
+    <div>
+      <div class="section-header">
+        <div class="section-label" style="margin-bottom:0">Induced B Field</div>
+        <button class="toggle-btn on" id="tog-inducedb" onclick="toggleInducedB()">● HIDE</button>
+      </div>
+      <div class="info-box" style="font-size:9px; line-height:1.7; color:#4a6070;">
+        Purple arrow shows the B field<br>
+        created by the induced current.<br>
+        It always opposes ΔΦ — Lenz's Law.
       </div>
     </div>
 
@@ -190,14 +218,14 @@
         <button class="btn" id="btn-flip"   onclick="flipMagnet()">⇅ Flip Polarity</button>
         <button class="btn" id="btn-center" onclick="recenterMagnet()">⊕ Recenter</button>
       </div>
-      <button class="btn" id="btn-animate" onclick="toggleAnimate()">▶ Auto Up/Down</button>
-      <div class="slider-row" style="margin-top:6px">
+      <div class="btn-row" style="margin-bottom:6px">
+        <button class="btn" id="btn-animate" onclick="toggleAnimate()">▶ Auto Up/Down</button>
+        <button class="btn" id="btn-pause"   onclick="togglePause()">⏸ Pause</button>
+      </div>
+      <div class="slider-row" style="margin-top:2px">
         <span class="slider-label">Speed</span>
         <input type="range" id="sl-animspeed" min="0.05" max="1.0" value="0.4" step="0.05" oninput="onAnimSpeedChange(this)">
-        <span class="slider-val" id="val-animspeed">0.40×</span>
-      </div>
-      <div style="margin-top:6px; font-size:9px; color:#3a5570; line-height:1.6; padding:6px 8px; background:#060b14; border:1px solid #0d1e30;">
-        Auto-animate stays above loop.<br>Use ⇅ Flip Polarity to simulate<br>magnet approaching from below.
+        <span class="slider-val" id="val-animspeed">0.40 Hz</span>
       </div>
     </div>
 
@@ -205,18 +233,22 @@
 
     <!-- Legend -->
     <div>
-      <div class="section-label">Arrow Color — B · n̂</div>
+      <div class="section-label">Legend</div>
       <div class="legend-row">
         <div class="legend-swatch" style="background:linear-gradient(90deg,#ff6b35,#ffaa00)"></div>
-        Positive (into loop)
+        B upward through loop
       </div>
       <div class="legend-row">
         <div class="legend-swatch" style="background:linear-gradient(90deg,#0088ff,#00ccff)"></div>
-        Negative (out of loop)
+        B downward through loop
       </div>
       <div class="legend-row">
         <div class="legend-swatch" style="background:#ff44cc"></div>
         Induced current direction
+      </div>
+      <div class="legend-row">
+        <div class="legend-swatch" style="background:#b388ff"></div>
+        Induced B field
       </div>
     </div>
 
@@ -237,7 +269,8 @@
 //  CONSTANTS
 // ═══════════════════════════════════════════════════════
 const LOOP_HALF    = 3.0;
-const LOOP_GRID_N  = 13;
+const DISP_GRID_N  = 9;          // display arrows
+const PHI_GRID_N   = 13;         // flux integration (finer)
 const FULL_HALF    = 7.0;
 const MAX_ARROW    = 0.65;
 const REF_FIELD    = 0.025;
@@ -245,35 +278,41 @@ const ARROW_HEAD   = 0.25;
 const N_MARKERS    = 8;
 const EMF_SPEED_K  = 0.9;
 const EMF_THRESH   = 0.003;
-const ANIMATE_CENTER = 4.25;  // oscillate above loop plane
-const ANIMATE_AMP    = 2.75;  // sweeps y=1.5 to y=7.0
+const EMF_SAT      = 0.08;
+const ANIMATE_CENTER = 4.25;
+const ANIMATE_AMP    = 2.75;
 
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
 let magnetX = 0, magnetY = 3.0, magnetZ = 0;
 let magnetStrength = 1.0, magnetFlipped = false;
-let fieldMode   = 'grid';
-let autoAnimate = false;
-let animateT    = 0;
+let fieldMode    = 'grid';
+let autoAnimate  = false;
+let paused       = false;
+let animateT     = 0;
 let animateSpeed = 0.4;
-let markerPhase = 0;
+let markerPhase  = 0;
 let emf = 0;
 let prevTs = null;
 
+// Visibility toggles
+let showBField   = true;
+let showCurrent  = true;
+let showInducedB = true;
+
 // Graph ring buffer
-const GRAPH_SECS = 12;
-const GRAPH_RATE = 30;
+const GRAPH_SECS = 12, GRAPH_RATE = 30;
 const GRAPH_LEN  = GRAPH_SECS * GRAPH_RATE;
 const phiHistory = new Float32Array(GRAPH_LEN);
 const emfHistory = new Float32Array(GRAPH_LEN);
 let graphIdx = 0, lastGraphTs = 0;
 
-// Manual-drag EMF: windowed ring buffer
-const W_SIZE   = 12;
-const wPhi     = new Float32Array(W_SIZE);
-const wTs      = new Float32Array(W_SIZE);
-let   wIdx     = 0, wFull = false;
+// Manual EMF windowed buffer
+const W_SIZE = 12;
+const wPhi   = new Float32Array(W_SIZE);
+const wTs    = new Float32Array(W_SIZE);
+let   wIdx   = 0, wFull = false;
 
 // ═══════════════════════════════════════════════════════
 //  THREE.JS SETUP
@@ -293,7 +332,6 @@ scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
 const camera = new THREE.PerspectiveCamera(45, getW()/getH(), 0.1, 200);
 let camTheta = Math.PI*0.28, camPhi = Math.PI*0.30, camRadius = 22;
-
 function updateCamera() {
   camera.position.set(
     camRadius * Math.sin(camPhi) * Math.sin(camTheta),
@@ -305,11 +343,11 @@ function updateCamera() {
 updateCamera();
 
 // ═══════════════════════════════════════════════════════
-//  SCENE: floor grid
+//  SCENE OBJECTS
 // ═══════════════════════════════════════════════════════
 scene.add(new THREE.GridHelper(24, 48, 0x0a1e30, 0x080f1e));
 
-// ── Square loop: tube geometry ──
+// ── Square loop ──
 (function(){
   const h = LOOP_HALF;
   const corners = [
@@ -317,22 +355,21 @@ scene.add(new THREE.GridHelper(24, 48, 0x0a1e30, 0x080f1e));
     new THREE.Vector3( h,0, h), new THREE.Vector3(-h,0, h),
     new THREE.Vector3(-h,0,-h)
   ];
-  const R = 0.06, SEG = 8;
+  const R=0.06, SEG=8;
   const mat = new THREE.MeshBasicMaterial({ color:0x4fc3f7 });
   for (let i=0; i<corners.length-1; i++) {
-    const a = corners[i], b = corners[i+1];
-    const dir = new THREE.Vector3().subVectors(b,a);
-    const len = dir.length();
-    const mid = new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(R,R,len,SEG), mat);
+    const a=corners[i], b=corners[i+1];
+    const dir=new THREE.Vector3().subVectors(b,a);
+    const len=dir.length();
+    const mid=new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);
+    const mesh=new THREE.Mesh(new THREE.CylinderGeometry(R,R,len,SEG), mat);
     mesh.position.copy(mid);
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
     scene.add(mesh);
   }
   corners.forEach(c => {
-    const s = new THREE.Mesh(new THREE.SphereGeometry(R,SEG,SEG), mat);
-    s.position.copy(c);
-    scene.add(s);
+    const s=new THREE.Mesh(new THREE.SphereGeometry(R,SEG,SEG), mat);
+    s.position.copy(c); scene.add(s);
   });
 })();
 
@@ -349,8 +386,8 @@ magnetGroup.add(northMesh, southMesh);
 magnetGroup.position.set(magnetX, magnetY, magnetZ);
 scene.add(magnetGroup);
 
-// ── Field arrows: grid ──
-const arrowCount  = LOOP_GRID_N * LOOP_GRID_N;
+// ── B field arrows: grid (9×9 lines) ──
+const arrowCount  = DISP_GRID_N * DISP_GRID_N;
 const arrowPosArr = new Float32Array(arrowCount * 18);
 const arrowColArr = new Float32Array(arrowCount * 18);
 const arrowGeo    = new THREE.BufferGeometry();
@@ -359,42 +396,50 @@ arrowGeo.setAttribute('color',    new THREE.BufferAttribute(arrowColArr, 3));
 const arrowLines  = new THREE.LineSegments(arrowGeo, new THREE.LineBasicMaterial({ vertexColors:true }));
 scene.add(arrowLines);
 
-// ── Field arrow: single center — rendered as 3D tube+cone mesh ──
+// ── B field arrow: single center (3D mesh) ──
 const singleGroup = new THREE.Group();
 singleGroup.visible = false;
 scene.add(singleGroup);
-const SARROW_MAT  = new THREE.MeshBasicMaterial({ vertexColors:true });
-// Shaft mesh
-const sShaftGeo  = new THREE.CylinderGeometry(0.06, 0.06, 1, 8);
-const sShaftMesh = new THREE.Mesh(sShaftGeo, new THREE.MeshBasicMaterial({ color:0xffffff }));
-singleGroup.add(sShaftMesh);
-// Head mesh
-const sHeadGeo  = new THREE.ConeGeometry(0.14, 0.3, 8);
-const sHeadMesh = new THREE.Mesh(sHeadGeo, new THREE.MeshBasicMaterial({ color:0xffffff }));
-singleGroup.add(sHeadMesh);
+const sShaftMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.06, 0.06, 1, 8),
+  new THREE.MeshBasicMaterial({ color:0xffffff })
+);
+const sHeadMesh = new THREE.Mesh(
+  new THREE.ConeGeometry(0.14, 0.3, 8),
+  new THREE.MeshBasicMaterial({ color:0xffffff })
+);
+singleGroup.add(sShaftMesh, sHeadMesh);
 
-// ── Current markers: 3D mesh arrows (magenta) ──
-const SHAFT_R  = 0.07, SHAFT_LEN = 0.55;
-const CONE_R   = 0.16, CONE_LEN  = 0.32;
-const EMF_SAT  = 0.08;   // emf value that maps to full brightness
-const markerMat = new THREE.MeshBasicMaterial({ color:0xff44cc, transparent:true, opacity:1.0 });
+// ── Current markers (magenta 3D arrows) ──
+const SHAFT_R=0.07, SHAFT_LEN=0.55, CONE_R=0.16, CONE_LEN=0.32;
+const markerMat   = new THREE.MeshBasicMaterial({ color:0xff44cc, transparent:true, opacity:1.0 });
 const markerGroup = new THREE.Group();
 markerGroup.visible = false;
 scene.add(markerGroup);
 const markerMeshes = [];
 for (let m=0; m<N_MARKERS; m++) {
   const g = new THREE.Group();
-  // Each mesh gets its OWN material so we can tint per-group if needed
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(SHAFT_R,SHAFT_R,SHAFT_LEN,8), markerMat);
-  shaft.rotation.z = Math.PI/2;
-  shaft.position.x = SHAFT_LEN/2;
+  shaft.rotation.z = Math.PI/2; shaft.position.x = SHAFT_LEN/2;
   const cone = new THREE.Mesh(new THREE.ConeGeometry(CONE_R,CONE_LEN,8), markerMat);
-  cone.rotation.z = -Math.PI/2;
-  cone.position.x = SHAFT_LEN + CONE_LEN/2;
+  cone.rotation.z = -Math.PI/2; cone.position.x = SHAFT_LEN + CONE_LEN/2;
   g.add(shaft, cone);
-  markerGroup.add(g);
-  markerMeshes.push(g);
+  markerGroup.add(g); markerMeshes.push(g);
 }
+
+// ── Induced B arrow (purple 3D mesh) ──
+const inducedBGroup = new THREE.Group();
+inducedBGroup.visible = false;
+scene.add(inducedBGroup);
+const iBShaftMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.08, 0.08, 1, 8),
+  new THREE.MeshBasicMaterial({ color:0xb388ff })
+);
+const iBHeadMesh = new THREE.Mesh(
+  new THREE.ConeGeometry(0.18, 0.4, 8),
+  new THREE.MeshBasicMaterial({ color:0xb388ff })
+);
+inducedBGroup.add(iBShaftMesh, iBHeadMesh);
 
 // ═══════════════════════════════════════════════════════
 //  PHYSICS
@@ -410,15 +455,32 @@ function dipoleB(px, pz, MY) {
 }
 
 function computePhi(MY) {
-  const step = (2*LOOP_HALF) / (LOOP_GRID_N-1);
+  const step = (2*LOOP_HALF) / (PHI_GRID_N-1);
   const dA   = step * step;
   let phi = 0;
-  for (let i=0; i<LOOP_GRID_N; i++) {
-    for (let j=0; j<LOOP_GRID_N; j++) {
+  for (let i=0; i<PHI_GRID_N; i++)
+    for (let j=0; j<PHI_GRID_N; j++)
       phi += dipoleB(-LOOP_HALF+j*step, -LOOP_HALF+i*step, MY).y * dA;
-    }
-  }
   return phi;
+}
+
+function computeEmfAuto() {
+  const dYdt   = ANIMATE_AMP * 2*Math.PI * animateSpeed * Math.cos(2*Math.PI * animateSpeed * animateT);
+  const eps    = 0.1;
+  const dPhidY = (computePhi(magnetY + eps) - computePhi(magnetY - eps)) / (2*eps);
+  return -(dPhidY * dYdt);
+}
+
+function updateEmfManual(phi, ts) {
+  wPhi[wIdx] = phi; wTs[wIdx] = ts;
+  const oldIdx = (wIdx + 1) % W_SIZE;
+  if (wFull) {
+    const dPhi = phi - wPhi[oldIdx];
+    const dT   = (ts  - wTs[oldIdx]) / 1000;
+    if (dT > 0.001) emf = -dPhi / dT;
+  }
+  wIdx = (wIdx + 1) % W_SIZE;
+  if (wIdx === 0) wFull = true;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -431,49 +493,58 @@ function arrowColor(by) {
   return { r:0.05, g:0.25+0.25*(1-n), b:0.75+0.25*n };
 }
 
-function setArrow(idx, sx, sz, bx, by, bz, posArr, colArr, scale) {
-  scale = scale || 1.0;
+function setArrow(idx, sx, sz, bx, by, bz, posArr, colArr) {
   const mag = Math.sqrt(bx*bx+by*by+bz*bz);
   const base = idx*18;
-  if (mag < 1e-9) { posArr.fill(0,base,base+18); colArr.fill(0.2,base,base+18); return; }
-  const len = (mag/(mag+REF_FIELD))*MAX_ARROW*2*scale;
+  if (mag < 1e-9) { posArr.fill(0,base,base+18); colArr.fill(0.1,base,base+18); return; }
+  const len = (mag/(mag+REF_FIELD))*MAX_ARROW*2;
   const ux=bx/mag, uy=by/mag, uz=bz/mag;
   const sy=0.02, ex=sx+ux*len, ey=sy+uy*len, ez=sz+uz*len;
   const hl=len*ARROW_HEAD, hw=hl*0.45;
   let px, pyp, pz;
-  if (Math.abs(uy) < 0.85) {
-    const d=Math.sqrt(uz*uz+ux*ux+1e-12); px=-uz/d; pyp=0; pz=ux/d;
-  } else {
-    const d=Math.sqrt(uy*uy+uz*uz+1e-12); px=0; pyp=uz/d; pz=-uy/d;
-  }
+  if (Math.abs(uy) < 0.85) { const d=Math.sqrt(uz*uz+ux*ux+1e-12); px=-uz/d; pyp=0; pz=ux/d; }
+  else                      { const d=Math.sqrt(uy*uy+uz*uz+1e-12); px=0; pyp=uz/d; pz=-uy/d; }
   const hbx=ex-ux*hl, hby=ey-uy*hl, hbz=ez-uz*hl;
-  posArr[base+ 0]=sx;        posArr[base+ 1]=sy;       posArr[base+ 2]=sz;
-  posArr[base+ 3]=ex;        posArr[base+ 4]=ey;       posArr[base+ 5]=ez;
-  posArr[base+ 6]=ex;        posArr[base+ 7]=ey;       posArr[base+ 8]=ez;
-  posArr[base+ 9]=hbx+px*hw; posArr[base+10]=hby+pyp*hw; posArr[base+11]=hbz+pz*hw;
-  posArr[base+12]=ex;        posArr[base+13]=ey;       posArr[base+14]=ez;
-  posArr[base+15]=hbx-px*hw; posArr[base+16]=hby-pyp*hw; posArr[base+17]=hbz-pz*hw;
+  posArr[base+ 0]=sx;         posArr[base+ 1]=sy;        posArr[base+ 2]=sz;
+  posArr[base+ 3]=ex;         posArr[base+ 4]=ey;        posArr[base+ 5]=ez;
+  posArr[base+ 6]=ex;         posArr[base+ 7]=ey;        posArr[base+ 8]=ez;
+  posArr[base+ 9]=hbx+px*hw;  posArr[base+10]=hby+pyp*hw; posArr[base+11]=hbz+pz*hw;
+  posArr[base+12]=ex;         posArr[base+13]=ey;        posArr[base+14]=ez;
+  posArr[base+15]=hbx-px*hw;  posArr[base+16]=hby-pyp*hw; posArr[base+17]=hbz-pz*hw;
   const c = arrowColor(by);
   for (let v=0; v<6; v++) { colArr[base+v*3]=c.r; colArr[base+v*3+1]=c.g; colArr[base+v*3+2]=c.b; }
 }
 
-const _sUp   = new THREE.Vector3(0,1,0);
-const _sDir  = new THREE.Vector3();
-const _sQuat = new THREE.Quaternion();
+const _sUp = new THREE.Vector3(0,1,0);
+const _sDir = new THREE.Vector3();
+const _sQ   = new THREE.Quaternion();
+
+function placeMeshArrow(shaftMesh, headMesh, origin, dir, shaftR, headR, shaftLen, headLen) {
+  _sDir.copy(dir);
+  _sQ.setFromUnitVectors(_sUp, _sDir);
+  shaftMesh.geometry.dispose();
+  shaftMesh.geometry = new THREE.CylinderGeometry(shaftR, shaftR, shaftLen, 8);
+  shaftMesh.position.copy(origin).addScaledVector(_sDir, shaftLen/2);
+  shaftMesh.quaternion.copy(_sQ);
+  headMesh.geometry.dispose();
+  headMesh.geometry = new THREE.ConeGeometry(headR, headLen, 8);
+  headMesh.position.copy(origin).addScaledVector(_sDir, shaftLen + headLen/2);
+  headMesh.quaternion.copy(_sQ);
+}
 
 function updateArrows() {
-  const step = (2*LOOP_HALF)/(LOOP_GRID_N-1);
+  if (!showBField) { arrowLines.visible = false; singleGroup.visible = false; return; }
+  const step = (2*LOOP_HALF)/(DISP_GRID_N-1);
   if (fieldMode === 'grid') {
     arrowLines.visible  = true;
     singleGroup.visible = false;
     let idx = 0;
-    for (let i=0; i<LOOP_GRID_N; i++) {
-      for (let j=0; j<LOOP_GRID_N; j++) {
+    for (let i=0; i<DISP_GRID_N; i++)
+      for (let j=0; j<DISP_GRID_N; j++) {
         const px=-LOOP_HALF+j*step, pz=-LOOP_HALF+i*step;
         const {x:bx,y:by,z:bz} = dipoleB(px,pz);
         setArrow(idx++, px, pz, bx, by, bz, arrowPosArr, arrowColArr);
       }
-    }
     arrowGeo.attributes.position.needsUpdate = true;
     arrowGeo.attributes.color.needsUpdate    = true;
   } else {
@@ -482,22 +553,10 @@ function updateArrows() {
     const {x:bx,y:by,z:bz} = dipoleB(0,0);
     const mag = Math.sqrt(bx*bx+by*by+bz*bz);
     if (mag > 1e-9) {
-      const len      = (mag/(mag+REF_FIELD)) * MAX_ARROW * 4;  // 2× scale
-      const shaftLen = len * (1 - ARROW_HEAD);
-      const headLen  = len * ARROW_HEAD;
+      const totalLen = (mag/(mag+REF_FIELD)) * MAX_ARROW * 4;
+      const sLen = totalLen * (1-ARROW_HEAD), hLen = totalLen * ARROW_HEAD;
       _sDir.set(bx/mag, by/mag, bz/mag);
-      _sQuat.setFromUnitVectors(_sUp, _sDir);
-      // Shaft: centered at half shaftLen along direction
-      sShaftMesh.geometry.dispose();
-      sShaftMesh.geometry = new THREE.CylinderGeometry(0.06, 0.06, shaftLen, 8);
-      sShaftMesh.position.set(0, 0.02, 0).addScaledVector(_sDir, shaftLen/2);
-      sShaftMesh.quaternion.copy(_sQuat);
-      // Head: centered at shaftLen + headLen/2
-      sHeadMesh.geometry.dispose();
-      sHeadMesh.geometry = new THREE.ConeGeometry(0.14, headLen, 8);
-      sHeadMesh.position.set(0, 0.02, 0).addScaledVector(_sDir, shaftLen + headLen/2);
-      sHeadMesh.quaternion.copy(_sQuat);
-      // Color
+      placeMeshArrow(sShaftMesh, sHeadMesh, new THREE.Vector3(0,0.02,0), _sDir, 0.06, 0.14, sLen, hLen);
       const c = arrowColor(by);
       sShaftMesh.material.color.setRGB(c.r, c.g, c.b);
       sHeadMesh.material.color.setRGB(c.r, c.g, c.b);
@@ -506,69 +565,86 @@ function updateArrows() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  EMF CALCULATION
-//  Auto mode: analytical dΦ/dY × dY/dt  (perfectly smooth)
-//  Manual mode: windowed numerical derivative
-// ═══════════════════════════════════════════════════════
-function computeEmfAuto() {
-  const dYdt = ANIMATE_AMP * 2*Math.PI * animateSpeed * Math.cos(2*Math.PI * animateSpeed * animateT);
-  const eps = 0.1;
-  const dPhidY = (computePhi(magnetY + eps) - computePhi(magnetY - eps)) / (2*eps);
-  return -(dPhidY * dYdt);
-}
-
-function updateEmfManual(phi, ts) {
-  wPhi[wIdx] = phi;
-  wTs [wIdx] = ts;
-  const oldIdx = (wIdx + 1) % W_SIZE;
-  if (wFull) {
-    const dPhi = phi - wPhi[oldIdx];
-    const dT   = (ts  - wTs [oldIdx]) / 1000;
-    if (dT > 0.001) emf = -dPhi / dT;
-  }
-  wIdx = (wIdx + 1) % W_SIZE;
-  if (wIdx === 0) wFull = true;
-}
-
-// ═══════════════════════════════════════════════════════
 //  LOOP PATH — CCW from above
 // ═══════════════════════════════════════════════════════
 function loopPosDir(t) {
-  const s = ((t % 1) + 1) % 1;
-  const dist = s * 4;
-  const L = LOOP_HALF * 2;
-  const Y = 0.12;
-  if (dist < 1) { const u=dist;   return {x:-LOOP_HALF+u*L, y:Y, z:-LOOP_HALF, tx:1,  tz:0 }; }
-  if (dist < 2) { const u=dist-1; return {x: LOOP_HALF,     y:Y, z:-LOOP_HALF+u*L, tx:0, tz:1 }; }
-  if (dist < 3) { const u=dist-2; return {x: LOOP_HALF-u*L, y:Y, z: LOOP_HALF, tx:-1, tz:0 }; }
+  const s = ((t%1)+1)%1, dist=s*4, L=LOOP_HALF*2, Y=0.12;
+  if (dist < 1) { const u=dist;   return {x:-LOOP_HALF+u*L, y:Y, z:-LOOP_HALF, tx:1,  tz:0}; }
+  if (dist < 2) { const u=dist-1; return {x: LOOP_HALF,     y:Y, z:-LOOP_HALF+u*L, tx:0, tz:1}; }
+  if (dist < 3) { const u=dist-2; return {x: LOOP_HALF-u*L, y:Y, z: LOOP_HALF,     tx:-1, tz:0}; }
   const u=dist-3; return {x:-LOOP_HALF, y:Y, z:LOOP_HALF-u*L, tx:0, tz:-1};
 }
 
 // ═══════════════════════════════════════════════════════
 //  CURRENT MARKERS
 // ═══════════════════════════════════════════════════════
-const _fromVec = new THREE.Vector3(1, 0, 0);
+const _fromVec = new THREE.Vector3(1,0,0);
 const _toVec   = new THREE.Vector3();
 
 function updateMarkers(dt) {
-  if (Math.abs(emf) < EMF_THRESH) { markerGroup.visible = false; return; }
+  if (!showCurrent || Math.abs(emf) < EMF_THRESH) { markerGroup.visible = false; return; }
   markerGroup.visible = true;
-
-  // Opacity: fades in from threshold up to EMF_SAT
-  const opacity = Math.min(1.0, (Math.abs(emf) - EMF_THRESH) / (EMF_SAT - EMF_THRESH));
-  markerMat.color.setHex(0xff44cc);
-  markerMat.opacity = 0.15 + 0.85 * opacity;
-
-  markerPhase = ((markerPhase - EMF_SPEED_K * emf * dt) % 1 + 1) % 1;
+  const opacity = Math.min(1.0, (Math.abs(emf)-EMF_THRESH)/(EMF_SAT-EMF_THRESH));
+  markerMat.opacity = 0.15 + 0.85*opacity;
+  markerPhase = ((markerPhase - EMF_SPEED_K*emf*dt) % 1 + 1) % 1;
   for (let m=0; m<N_MARKERS; m++) {
     const t = (markerPhase + m/N_MARKERS) % 1;
-    const {x, y, z, tx:rawTx, tz:rawTz} = loopPosDir(t);
+    const {x,y,z,tx:rawTx,tz:rawTz} = loopPosDir(t);
     const dir = emf >= 0 ? -1 : 1;
-    const tx = rawTx*dir, tz = rawTz*dir;
     const g2 = markerMeshes[m];
-    g2.position.set(x, y, z);
-    g2.quaternion.setFromUnitVectors(_fromVec, _toVec.set(tx, 0, tz).normalize());
+    g2.position.set(x,y,z);
+    g2.quaternion.setFromUnitVectors(_fromVec, _toVec.set(rawTx*dir, 0, rawTz*dir).normalize());
   }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INDUCED B ARROW
+//  Single mode only. Fixed size. Attaches to tip of driving
+//  arrow if same direction (adding), base if opposing (subtracting).
+// ═══════════════════════════════════════════════════════
+const IB_SHAFT_LEN = 0.7;
+const IB_HEAD_LEN  = 0.35;
+const IB_TOTAL     = IB_SHAFT_LEN + IB_HEAD_LEN;
+
+function updateInducedB() {
+  // Only show in single mode
+  if (!showInducedB || fieldMode !== 'single' || Math.abs(emf) < EMF_THRESH) {
+    inducedBGroup.visible = false;
+    return;
+  }
+
+  // Induced B direction: opposes dΦ/dt = -emf
+  // emf > 0 → flux decreasing → induced B points up (+Y)
+  // emf < 0 → flux increasing → induced B points down (-Y)
+  const inducedUp = emf >= 0;   // true = +Y, false = -Y
+  _sDir.set(0, inducedUp ? 1 : -1, 0);
+
+  // Get driving field direction at loop center
+  const {x:bx, y:by, z:bz} = dipoleB(0, 0);
+  const mag = Math.sqrt(bx*bx+by*by+bz*bz);
+  if (mag < 1e-9) { inducedBGroup.visible = false; return; }
+
+  // Driving arrow total length (same calc as updateArrows single mode)
+  const drivingLen = (mag/(mag+REF_FIELD)) * MAX_ARROW * 4;
+  const drivingShaft = drivingLen * (1-ARROW_HEAD);
+
+  // Does induced B align with driving field (+Y component)?
+  const drivingUp = by >= 0;
+  const sameDir   = (inducedUp === drivingUp);
+
+  // Attach point: tip of driving arrow if adding, base (y=0.02) if subtracting
+  let originY;
+  if (sameDir) {
+    // tip = base + full driving arrow length along driving direction
+    const dux = bx/mag, duy = by/mag, duz = bz/mag;
+    originY = 0.02 + duy * drivingLen;
+  } else {
+    originY = 0.02;  // base of driving arrow
+  }
+
+  inducedBGroup.visible = true;
+  const origin = new THREE.Vector3(0, originY, 0);
+  placeMeshArrow(iBShaftMesh, iBHeadMesh, origin, _sDir, 0.07, 0.15, IB_SHAFT_LEN, IB_HEAD_LEN);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -576,19 +652,23 @@ function updateMarkers(dt) {
 // ═══════════════════════════════════════════════════════
 function updateLenz() {
   const active = Math.abs(emf) > EMF_THRESH;
-  const dPhiDt = -emf;
-  ['lenz-row-1','lenz-row-2','lenz-row-3'].forEach(id => {
-    document.getElementById(id).classList.toggle('lenz-inactive', !active);
-  });
+  ['lenz-row-1','lenz-row-2','lenz-row-3'].forEach(id =>
+    document.getElementById(id).classList.toggle('lenz-inactive', !active));
+
   if (!active) {
-    document.getElementById('lenz-phi-text').textContent = 'not changing';
+    document.getElementById('lenz-phi-text').textContent = 'Flux not changing';
     document.getElementById('lenz-b-text').textContent   = '—';
     document.getElementById('lenz-i-text').textContent   = '—';
     return;
   }
-  document.getElementById('lenz-phi-text').textContent = dPhiDt > 0 ? 'increasing ↑' : 'decreasing ↓';
-  document.getElementById('lenz-b-text').textContent   = dPhiDt > 0 ? 'opposes → points ↓ (−Y)' : 'opposes → points ↑ (+Y)';
-  document.getElementById('lenz-i-text').textContent   = dPhiDt > 0 ? 'clockwise (from above)' : 'counter-clockwise';
+  // dΦ/dt = -emf
+  const increasing = -emf > 0;
+  document.getElementById('lenz-phi-text').textContent =
+    increasing ? 'Upward flux is increasing' : 'Upward flux is decreasing';
+  document.getElementById('lenz-b-text').textContent =
+    increasing ? '↓  (−Y)' : '↑  (+Y)';
+  document.getElementById('lenz-i-text').textContent =
+    increasing ? 'clockwise (from above)' : 'counter-clockwise';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -603,45 +683,34 @@ function resizeGraph() {
 resizeGraph();
 
 function drawGraph() {
-  const W=graphCanvas.width, H=graphCanvas.height;
-  const H2 = H/2;
+  const W=graphCanvas.width, H=graphCanvas.height, H2=H/2;
   gctx.fillStyle='#04080f'; gctx.fillRect(0,0,W,H);
-
-  // Divider
   gctx.strokeStyle='#1a3050'; gctx.lineWidth=1;
   gctx.beginPath(); gctx.moveTo(0,H2); gctx.lineTo(W,H2); gctx.stroke();
-
-  // Center lines for each panel
   gctx.strokeStyle='#0a1828';
   gctx.beginPath(); gctx.moveTo(0,H2/2); gctx.lineTo(W,H2/2); gctx.stroke();
   gctx.beginPath(); gctx.moveTo(0,H2+H2/2); gctx.lineTo(W,H2+H2/2); gctx.stroke();
-
-  // Panel labels
-  gctx.fillStyle='#2a6040'; gctx.font=`${9*(window.devicePixelRatio||1)}px Share Tech Mono,monospace`;
-  gctx.fillText('Φ', 4, H2/2 - 4);
-  gctx.fillStyle='#706020';
-  gctx.fillText('ε', 4, H2 + H2/2 - 4);
+  const pr = window.devicePixelRatio||1;
+  gctx.fillStyle='#2a6040'; gctx.font=`${9*pr}px Share Tech Mono,monospace`;
+  gctx.fillText('Φ', 4, H2/2-4);
+  gctx.fillStyle='#706020'; gctx.fillText('ε', 4, H2+H2/2-4);
 
   let pMax=0.001, eMax=0.001;
   for (let i=0;i<GRAPH_LEN;i++) { pMax=Math.max(pMax,Math.abs(phiHistory[i])); eMax=Math.max(eMax,Math.abs(emfHistory[i])); }
   pMax*=1.3; eMax*=1.3;
 
-  // Phi trace — top half
   gctx.strokeStyle='#69f0ae'; gctx.lineWidth=1.5; gctx.beginPath();
   for (let k=0;k<GRAPH_LEN;k++) {
-    const i=(graphIdx+k)%GRAPH_LEN;
-    const x=(k/(GRAPH_LEN-1))*W;
-    const y=H2/2 - (phiHistory[i]/pMax)*(H2/2 - 3);
+    const i=(graphIdx+k)%GRAPH_LEN, x=(k/(GRAPH_LEN-1))*W;
+    const y=H2/2-(phiHistory[i]/pMax)*(H2/2-3);
     k===0?gctx.moveTo(x,y):gctx.lineTo(x,y);
   }
   gctx.stroke();
 
-  // EMF trace — bottom half
   gctx.strokeStyle='#ffd54f'; gctx.lineWidth=1.5; gctx.beginPath();
   for (let k=0;k<GRAPH_LEN;k++) {
-    const i=(graphIdx+k)%GRAPH_LEN;
-    const x=(k/(GRAPH_LEN-1))*W;
-    const y=H2 + H2/2 - (emfHistory[i]/eMax)*(H2/2 - 3);
+    const i=(graphIdx+k)%GRAPH_LEN, x=(k/(GRAPH_LEN-1))*W;
+    const y=H2+H2/2-(emfHistory[i]/eMax)*(H2/2-3);
     k===0?gctx.moveTo(x,y):gctx.lineTo(x,y);
   }
   gctx.stroke();
@@ -680,7 +749,7 @@ window.addEventListener  ('touchmove',  e=>{if(jsActive)jsMove(e.touches[0].clie
 window.addEventListener  ('touchend',   ()=>jsEnd());
 
 // ═══════════════════════════════════════════════════════
-//  ORBIT
+//  ORBIT / ZOOM
 // ═══════════════════════════════════════════════════════
 let isOrbiting=false, lastMX=0, lastMY=0;
 renderer.domElement.addEventListener('mousedown', e=>{
@@ -706,6 +775,11 @@ function setFieldMode(m) {
   fieldMode = m;
   document.getElementById('btn-single').classList.toggle('active', m==='single');
   document.getElementById('btn-grid').classList.toggle('active',   m==='grid');
+  // Induced B only meaningful in single mode — grey out toggle in grid mode
+  const ibToggle = document.getElementById('tog-inducedb');
+  ibToggle.style.opacity      = m === 'grid' ? '0.3' : '1.0';
+  ibToggle.style.pointerEvents = m === 'grid' ? 'none' : 'auto';
+  if (m === 'grid') inducedBGroup.visible = false;
 }
 function onHeightChange(el) {
   magnetY = Math.max(0.7, parseFloat(el.value));
@@ -734,17 +808,42 @@ function toggleAnimate() {
   const btn = document.getElementById('btn-animate');
   btn.classList.toggle('active', autoAnimate);
   btn.textContent = autoAnimate ? '■ Stop' : '▶ Auto Up/Down';
-  // Sync phase to current height for smooth start
-  if (autoAnimate) animateT = Math.asin(Math.max(-1,Math.min(1, (magnetY-ANIMATE_CENTER)/ANIMATE_AMP))) / (2*Math.PI*animateSpeed);
-  // Reset windowed buffer so manual EMF is fresh when stopped
+  if (autoAnimate) animateT = Math.asin(Math.max(-1,Math.min(1,(magnetY-ANIMATE_CENTER)/ANIMATE_AMP))) / (2*Math.PI*animateSpeed);
   wIdx=0; wFull=false;
+}
+function togglePause() {
+  paused = !paused;
+  const btn = document.getElementById('btn-pause');
+  btn.classList.toggle('paused', paused);
+  btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+  if (!paused) prevTs = null;  // reset dt so no jump on resume
 }
 function onAnimSpeedChange(el) {
   animateSpeed = parseFloat(el.value);
-  document.getElementById('val-animspeed').textContent = animateSpeed.toFixed(2)+'×';
+  document.getElementById('val-animspeed').textContent = animateSpeed.toFixed(2)+' Hz';
+}
+function toggleBField() {
+  showBField = !showBField;
+  const btn = document.getElementById('tog-bfield');
+  btn.classList.toggle('on', showBField);
+  btn.textContent = showBField ? '● HIDE' : '○ SHOW';
+}
+function toggleCurrent() {
+  showCurrent = !showCurrent;
+  const btn = document.getElementById('tog-current');
+  btn.classList.toggle('on', showCurrent);
+  btn.textContent = showCurrent ? '● HIDE' : '○ SHOW';
+  if (!showCurrent) markerGroup.visible = false;
+}
+function toggleInducedB() {
+  showInducedB = !showInducedB;
+  const btn = document.getElementById('tog-inducedb');
+  btn.classList.toggle('on', showInducedB);
+  btn.textContent = showInducedB ? '● HIDE' : '○ SHOW';
+  if (!showInducedB) inducedBGroup.visible = false;
 }
 
-// ── Size height slider to fill its container ──
+// ── Height slider sizing ──
 function resizeHeightSlider() {
   const inner = document.getElementById('height-slider-inner');
   const sl    = document.getElementById('sl-height');
@@ -765,10 +864,11 @@ window.addEventListener('resize', ()=>{
 // ═══════════════════════════════════════════════════════
 function animate(ts) {
   requestAnimationFrame(animate);
+  if (paused) { renderer.render(scene, camera); return; }
+
   const dt = (prevTs !== null) ? Math.min((ts-prevTs)/1000, 0.05) : 0;
   prevTs = ts;
 
-  // Update magnet position
   if (autoAnimate) {
     animateT += dt;
     magnetY = Math.max(0.7, ANIMATE_CENTER + ANIMATE_AMP * Math.sin(2*Math.PI * animateSpeed * animateT));
@@ -777,22 +877,18 @@ function animate(ts) {
     document.getElementById('ht-val-display').textContent = magnetY.toFixed(1);
   }
 
-  // Compute flux
   const phi = computePhi(magnetY);
-
-  // Compute EMF
   if (autoAnimate) {
     emf = computeEmfAuto();
   } else {
     updateEmfManual(phi, ts);
   }
 
-  // Update visuals
   updateArrows();
   updateMarkers(dt);
+  updateInducedB();
   updateLenz();
 
-  // Graph
   if (ts - lastGraphTs >= 1000/GRAPH_RATE) {
     phiHistory[graphIdx] = phi;
     emfHistory[graphIdx] = emf;
@@ -807,6 +903,13 @@ function animate(ts) {
 }
 
 animate(0);
+
+// Initialize induced B toggle state to match default grid mode
+(function(){
+  const ibToggle = document.getElementById('tog-inducedb');
+  ibToggle.style.opacity       = '0.3';
+  ibToggle.style.pointerEvents = 'none';
+})();
 </script>
 </body>
 </html>
