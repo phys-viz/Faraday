@@ -110,28 +110,35 @@
 
 <div id="sidebar">
   <div id="sidebar-header">
-    <h1>Faraday's Law</h1>
+    <h1>Magnetic Flux</h1>
+    <p>Φ = ∫ B · dA &nbsp;·&nbsp; ε = −dΦ/dt</p>
   </div>
   <div id="sidebar-body">
 
-    <!-- Readouts -->
-    <div class="readout-row">
-      <div class="readout-box">
-        <div class="readout-label">Flux Φ</div>
-        <div class="readout-big readout-phi" id="disp-phi">0.000</div>
-        <div class="readout-unit">norm. units</div>
-      </div>
-      <div class="readout-box">
-        <div class="readout-label">EMF ε</div>
-        <div class="readout-big readout-emf" id="disp-emf">0.000</div>
-        <div class="readout-unit">norm. units</div>
-      </div>
-    </div>
-
-    <!-- Live graph -->
+    <!-- Readouts + Graph (collapsible) -->
     <div>
-      <div class="section-label">Live Graph &nbsp;<span style="color:#69f0ae">— Φ</span> &nbsp;<span style="color:#ffd54f">— ε</span></div>
-      <canvas id="graph-canvas"></canvas>
+      <div class="section-header" style="cursor:pointer" onclick="toggleSection('readout-body', 'chev-readout')">
+        <div class="section-label" style="margin-bottom:0">Flux &amp; EMF Readouts</div>
+        <span id="chev-readout" style="font-size:10px; color:#3a5570;">▶ show</span>
+      </div>
+      <div id="readout-body" style="display:none; margin-top:6px;">
+        <div class="readout-row">
+          <div class="readout-box">
+            <div class="readout-label">Flux Φ</div>
+            <div class="readout-big readout-phi" id="disp-phi">0.000</div>
+            <div class="readout-unit">norm. units</div>
+          </div>
+          <div class="readout-box">
+            <div class="readout-label">EMF ε</div>
+            <div class="readout-big readout-emf" id="disp-emf">0.000</div>
+            <div class="readout-unit">norm. units</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <div class="section-label">Live Graph &nbsp;<span style="color:#69f0ae">— Φ</span> &nbsp;<span style="color:#ffd54f">— ε</span></div>
+          <canvas id="graph-canvas"></canvas>
+        </div>
+      </div>
     </div>
 
     <hr class="divider">
@@ -181,23 +188,29 @@
         <button class="toggle-btn on" id="tog-inducedb" onclick="toggleInducedB()">● HIDE</button>
       </div>
       <div class="info-box" style="font-size:9px; line-height:1.7; color:#4a6070;">
-        Purple arrow shows the direction of the B field<br>
+        Purple arrow shows the B field<br>
         created by the induced current.<br>
+        It always opposes ΔΦ — Lenz's Law.
       </div>
     </div>
 
     <hr class="divider">
 
-    <!-- Joystick -->
+    <!-- Joystick (collapsible) -->
     <div>
-      <div class="section-label">Move Magnet (XZ plane)</div>
-      <div id="joystick-wrap">
-        <div>
-          <div id="joystick">
-            <div id="joystick-ring"></div>
-            <div id="joystick-dot"></div>
+      <div class="section-header" style="cursor:pointer" onclick="toggleSection('joystick-body', 'chev-joystick')">
+        <div class="section-label" style="margin-bottom:0">Move Magnet (XZ plane)</div>
+        <span id="chev-joystick" style="font-size:10px; color:#3a5570;">▶ show</span>
+      </div>
+      <div id="joystick-body" style="display:none; margin-top:6px;">
+        <div id="joystick-wrap">
+          <div>
+            <div id="joystick">
+              <div id="joystick-ring"></div>
+              <div id="joystick-dot"></div>
+            </div>
+            <div class="joystick-label">drag to position magnet</div>
           </div>
-          <div class="joystick-label">drag to position magnet</div>
         </div>
       </div>
     </div>
@@ -277,8 +290,8 @@ const N_MARKERS    = 8;
 const EMF_SPEED_K  = 0.9;
 const EMF_THRESH   = 0.003;
 const EMF_SAT      = 0.08;
-const ANIMATE_CENTER = 4.25;
-const ANIMATE_AMP    = 2.75;
+const ANIMATE_CENTER = 4.5;
+const ANIMATE_AMP    = 2.5;   // sweeps y=2.0 to y=7.0
 
 // ═══════════════════════════════════════════════════════
 //  STATE
@@ -373,13 +386,13 @@ scene.add(new THREE.GridHelper(24, 48, 0x0a1e30, 0x080f1e));
 
 // ── Magnet ──
 const magnetGroup = new THREE.Group();
-const northMat = new THREE.MeshBasicMaterial({ color:0xcc3333 });
-const southMat = new THREE.MeshBasicMaterial({ color:0x3366cc });
-const boxGeo   = new THREE.BoxGeometry(0.5, 0.7, 0.5);
+const northMat = new THREE.MeshBasicMaterial({ color:0xcc3333, transparent:true, opacity:1.0 });
+const southMat = new THREE.MeshBasicMaterial({ color:0x3366cc, transparent:true, opacity:1.0 });
+const boxGeo   = new THREE.BoxGeometry(0.375, 0.525, 0.375);
 const northMesh = new THREE.Mesh(boxGeo, northMat);
 const southMesh = new THREE.Mesh(boxGeo, southMat);
-northMesh.position.y =  0.35;
-southMesh.position.y = -0.35;
+northMesh.position.y =  0.2625;
+southMesh.position.y = -0.2625;
 magnetGroup.add(northMesh, southMesh);
 magnetGroup.position.set(magnetX, magnetY, magnetZ);
 scene.add(magnetGroup);
@@ -769,6 +782,16 @@ renderer.domElement.addEventListener('wheel', e=>{
 // ═══════════════════════════════════════════════════════
 //  UI CALLBACKS
 // ═══════════════════════════════════════════════════════
+function toggleSection(bodyId, chevId) {
+  const body = document.getElementById(bodyId);
+  const chev = document.getElementById(chevId);
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  chev.textContent   = open ? '▼ hide' : '▶ show';
+  chev.style.color   = open ? '#4fc3f7' : '#3a5570';
+  if (open && bodyId === 'readout-body') resizeGraph();
+}
+
 function setFieldMode(m) {
   fieldMode = m;
   document.getElementById('btn-single').classList.toggle('active', m==='single');
@@ -886,6 +909,13 @@ function animate(ts) {
   updateMarkers(dt);
   updateInducedB();
   updateLenz();
+
+  // Fade magnet when close to loop — keeps field arrows readable
+  const fadeStart = 3.0, fadeEnd = 1.5;
+  const magnetOpacity = magnetY >= fadeStart ? 1.0 :
+    Math.max(0.15, (magnetY - fadeEnd) / (fadeStart - fadeEnd));
+  northMat.opacity = magnetOpacity;
+  southMat.opacity = magnetOpacity;
 
   if (ts - lastGraphTs >= 1000/GRAPH_RATE) {
     phiHistory[graphIdx] = phi;
