@@ -98,12 +98,11 @@
 
 <div id="canvas-wrap">
   <div id="height-track">
-    <div class="ht-end-label">▲<br>FAR</div>
+    <div class="ht-end-label">▲<br>UP</div>
     <div id="height-slider-inner">
-      <input type="range" id="sl-height" min="0.7" max="8" value="3" step="0.1" oninput="onHeightChange(this)">
+      <input type="range" id="sl-height" min="2.0" max="8" value="3" step="0.1" oninput="onHeightChange(this)">
     </div>
-    <div id="ht-val-display">3.0</div>
-    <div class="ht-end-label dim">▼<br>NEAR</div>
+    <div class="ht-end-label dim">▼<br>DOWN</div>
   </div>
   <div id="canvas-container"></div>
 </div>
@@ -164,6 +163,9 @@
         <button class="toggle-btn on" id="tog-current" onclick="toggleCurrent()">● HIDE</button>
       </div>
       <div id="lenz-box">
+        <div style="font-size:10px; color:#4a6070; padding-bottom:4px; border-bottom:1px solid #0d1e30; margin-bottom:4px;">
+          <span id="lenz-motion-text">—</span>
+        </div>
         <div class="lenz-row" id="lenz-row-1">
           <div class="lenz-step">1</div>
           <div class="lenz-text"><span id="lenz-phi-text" style="color:#69f0ae">—</span></div>
@@ -188,9 +190,7 @@
         <button class="toggle-btn on" id="tog-inducedb" onclick="toggleInducedB()">● HIDE</button>
       </div>
       <div class="info-box" style="font-size:9px; line-height:1.7; color:#4a6070;">
-        Purple arrow shows the B field<br>
-        created by the induced current.<br>
-        It always opposes ΔΦ — Lenz's Law.
+        The purple arrow shows the direction of the magnetic field created by the induced current. This field always opposes the change in flux from the permanent magnet.
       </div>
     </div>
 
@@ -199,7 +199,7 @@
     <!-- Joystick (collapsible) -->
     <div>
       <div class="section-header" style="cursor:pointer" onclick="toggleSection('joystick-body', 'chev-joystick')">
-        <div class="section-label" style="margin-bottom:0">Move Magnet (XZ plane)</div>
+        <div class="section-label" style="margin-bottom:0">Move Magnet in Horizontal Plane</div>
         <span id="chev-joystick" style="font-size:10px; color:#3a5570;">▶ show</span>
       </div>
       <div id="joystick-body" style="display:none; margin-top:6px;">
@@ -234,9 +234,9 @@
         <button class="btn" id="btn-pause"   onclick="togglePause()">⏸ Pause</button>
       </div>
       <div class="slider-row" style="margin-top:2px">
-        <span class="slider-label">Speed</span>
+        <span class="slider-label" style="color:#3a5570">SLOWER</span>
         <input type="range" id="sl-animspeed" min="0.05" max="1.0" value="0.4" step="0.05" oninput="onAnimSpeedChange(this)">
-        <span class="slider-val" id="val-animspeed">0.40 Hz</span>
+        <span class="slider-label" style="color:#3a5570; width:auto">FASTER</span>
       </div>
     </div>
 
@@ -259,7 +259,7 @@
       </div>
       <div class="legend-row">
         <div class="legend-swatch" style="background:#b388ff"></div>
-        Induced B field
+        Induced field direction
       </div>
     </div>
 
@@ -396,6 +396,32 @@ southMesh.position.y = -0.2625;
 magnetGroup.add(northMesh, southMesh);
 magnetGroup.position.set(magnetX, magnetY, magnetZ);
 scene.add(magnetGroup);
+
+// ── N / S labels on magnet ──
+(function(){
+  function makeLabel(text) {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    ctx.fillRect(0,0,64,64);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 44px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 32, 32);
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(0.5, 0.5, 1);
+    return sprite;
+  }
+  const nLabel = makeLabel('N');
+  nLabel.position.set(0, 0.26, 0.22);
+  const sLabel = makeLabel('S');
+  sLabel.position.set(0, -0.26, 0.22);
+  magnetGroup.add(nLabel, sLabel);
+})();
 
 // ── B field arrows: grid (9×9 lines) ──
 const arrowCount  = DISP_GRID_N * DISP_GRID_N;
@@ -666,13 +692,24 @@ function updateLenz() {
   ['lenz-row-1','lenz-row-2','lenz-row-3'].forEach(id =>
     document.getElementById(id).classList.toggle('lenz-inactive', !active));
 
+  // Magnet motion indicator
+  // Magnet above loop: moving DOWN → flux increases → emf < 0
+  //                    moving UP   → flux decreases → emf > 0
+  const motionEl = document.getElementById('lenz-motion-text');
+  if (!active) {
+    motionEl.textContent = 'Magnet stationary';
+    motionEl.style.color = '#3a5570';
+  } else {
+    motionEl.textContent = emf > 0 ? '↑  Magnet moving up' : '↓  Magnet moving down';
+    motionEl.style.color = '#7aabcf';
+  }
+
   if (!active) {
     document.getElementById('lenz-phi-text').textContent = 'Flux not changing';
     document.getElementById('lenz-b-text').textContent   = '—';
     document.getElementById('lenz-i-text').textContent   = '—';
     return;
   }
-  // dΦ/dt = -emf
   const increasing = -emf > 0;
   document.getElementById('lenz-phi-text').textContent =
     increasing ? 'Upward flux is increasing' : 'Upward flux is decreasing';
@@ -736,18 +773,30 @@ const JS_R = 55, JS_RANGE = FULL_HALF;
 let jsActive=false, jsCX=0, jsCY=0;
 
 function jsStart(cx,cy) {
+  if (paused) return;
   jsActive=true;
   const r=joystick.getBoundingClientRect();
   jsCX=r.left+r.width/2; jsCY=r.top+r.height/2;
   joystick.classList.add('js-active'); jsMove(cx,cy);
 }
 function jsMove(cx,cy) {
-  if (!jsActive) return;
+  if (!jsActive || paused) return;
   let dx=cx-jsCX, dy=cy-jsCY;
   const dist=Math.sqrt(dx*dx+dy*dy), maxR=JS_R-11;
   if (dist>maxR) { dx*=maxR/dist; dy*=maxR/dist; }
   jsDot.style.left=(JS_R+dx)+'px'; jsDot.style.top=(JS_R+dy)+'px';
-  magnetX=(dx/maxR)*JS_RANGE; magnetZ=(dy/maxR)*JS_RANGE;
+
+  // Camera-relative movement: project joystick axes onto world XZ plane
+  // Camera's horizontal right vector (in XZ plane)
+  const rightX =  Math.cos(camTheta);
+  const rightZ = -Math.sin(camTheta);
+  // Camera's horizontal forward vector (in XZ plane, pointing into scene)
+  const fwdX = Math.sin(camTheta);
+  const fwdZ = Math.cos(camTheta);
+
+  const nx = dx / maxR, ny = dy / maxR;  // normalized joystick -1..1
+  magnetX = (nx * rightX + ny * fwdX) * JS_RANGE;
+  magnetZ = (nx * rightZ + ny * fwdZ) * JS_RANGE;
   magnetGroup.position.set(magnetX, magnetY, magnetZ);
 }
 function jsEnd() { jsActive=false; joystick.classList.remove('js-active'); }
@@ -803,8 +852,7 @@ function setFieldMode(m) {
   if (m === 'grid') inducedBGroup.visible = false;
 }
 function onHeightChange(el) {
-  magnetY = Math.max(0.7, parseFloat(el.value));
-  document.getElementById('ht-val-display').textContent = magnetY.toFixed(1);
+  magnetY = Math.max(2.0, parseFloat(el.value));
   magnetGroup.position.set(magnetX, magnetY, magnetZ);
 }
 function onStrengthChange(el) {
@@ -831,6 +879,10 @@ function toggleAnimate() {
   btn.textContent = autoAnimate ? '■ Stop' : '▶ Auto Up/Down';
   if (autoAnimate) animateT = Math.asin(Math.max(-1,Math.min(1,(magnetY-ANIMATE_CENTER)/ANIMATE_AMP))) / (2*Math.PI*animateSpeed);
   wIdx=0; wFull=false;
+  // Disable height slider during auto-animate
+  const sl = document.getElementById('sl-height');
+  sl.disabled = autoAnimate;
+  sl.style.opacity = autoAnimate ? '0.3' : '1.0';
 }
 function togglePause() {
   paused = !paused;
@@ -841,7 +893,6 @@ function togglePause() {
 }
 function onAnimSpeedChange(el) {
   animateSpeed = parseFloat(el.value);
-  document.getElementById('val-animspeed').textContent = animateSpeed.toFixed(2)+' Hz';
 }
 function toggleBField() {
   showBField = !showBField;
@@ -892,10 +943,9 @@ function animate(ts) {
 
   if (autoAnimate) {
     animateT += dt;
-    magnetY = Math.max(0.7, ANIMATE_CENTER + ANIMATE_AMP * Math.sin(2*Math.PI * animateSpeed * animateT));
+    magnetY = Math.max(2.0, ANIMATE_CENTER + ANIMATE_AMP * Math.sin(2*Math.PI * animateSpeed * animateT));
     magnetGroup.position.set(magnetX, magnetY, magnetZ);
     document.getElementById('sl-height').value = magnetY;
-    document.getElementById('ht-val-display').textContent = magnetY.toFixed(1);
   }
 
   const phi = computePhi(magnetY);
