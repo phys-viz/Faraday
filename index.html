@@ -406,21 +406,27 @@ scene.add(magnetGroup);
     ctx.fillStyle = 'rgba(0,0,0,0)';
     ctx.fillRect(0,0,64,64);
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 44px Arial';
+    ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, 32, 32);
     const tex = new THREE.CanvasTexture(c);
-    const mat = new THREE.SpriteMaterial({ map:tex, transparent:true });
-    const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(0.5, 0.5, 1);
-    return sprite;
+    return new THREE.MeshBasicMaterial({ map:tex, transparent:true, side:THREE.DoubleSide });
   }
-  const nLabel = makeLabel('N');
-  nLabel.position.set(0, 0.26, 0.22);
-  const sLabel = makeLabel('S');
-  sLabel.position.set(0, -0.26, 0.22);
-  magnetGroup.add(nLabel, sLabel);
+  const geo = new THREE.PlaneGeometry(0.3, 0.3);
+  // Front face labels (Z+)
+  const nFront = new THREE.Mesh(geo, makeLabel('N'));
+  nFront.position.set(0, 0.26, 0.22);
+  const sFront = new THREE.Mesh(geo, makeLabel('S'));
+  sFront.position.set(0, -0.26, 0.22);
+  // Back face labels (Z-)
+  const nBack = new THREE.Mesh(geo, makeLabel('N'));
+  nBack.position.set(0, 0.26, -0.22);
+  nBack.rotation.y = Math.PI;
+  const sBack = new THREE.Mesh(geo, makeLabel('S'));
+  sBack.position.set(0, -0.26, -0.22);
+  sBack.rotation.y = Math.PI;
+  magnetGroup.add(nFront, sFront, nBack, sBack);
 })();
 
 // ── B field arrows: grid (9×9 lines) ──
